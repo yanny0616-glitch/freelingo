@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Loader2 } from 'lucide-react'
+import Image from 'next/image'
 import LinguAvatar, {
   type LinguAnimation,
 } from '@/components/lingu/LinguAvatar'
@@ -101,10 +102,21 @@ export function PageLoadingPresentation({
     >
       <div aria-hidden="true" />
       <div className="flex w-full max-w-sm flex-col items-center gap-6">
-        <LinguAvatar
-          animation={animation}
-          className="h-[75px] w-[75px] shrink-0 md:h-[150px] md:w-[150px]"
-        />
+        {animation === 'reposo' ? (
+          <Image
+            src="/logo.png"
+            alt=""
+            width={150}
+            height={150}
+            sizes="(min-width: 768px) 150px, 75px"
+            className="h-[75px] w-[75px] shrink-0 object-contain md:h-[150px] md:w-[150px]"
+          />
+        ) : (
+          <LinguAvatar
+            animation={animation}
+            className="h-[75px] w-[75px] shrink-0 md:h-[150px] md:w-[150px]"
+          />
+        )}
         <Label className="text-fl-fg font-sans text-lg leading-7 font-medium">
           {label}
         </Label>

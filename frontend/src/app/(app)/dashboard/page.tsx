@@ -95,6 +95,9 @@ export default function DashboardPage() {
   const [todayXp, setTodayXp] = useState(0)
   const [activityWeek, setActivityWeek] = useState<ActivityDay[]>([])
   const loadSequence = useRef(0)
+  const activeLoad = useRef<AbortController | null>(null)
+  const [planLoading, setPlanLoading] = useState(true)
+  const [planLoadError, setPlanLoadError] = useState(false)
   const [vocabularyLevel, setVocabularyLevel] = useState<string | null>(null)
   const [vocabularyMastered, setVocabularyMastered] = useState(0)
   const [vocabularyTotal, setVocabularyTotal] = useState(0)
@@ -106,14 +109,25 @@ export default function DashboardPage() {
 
   const loadData = useCallback(async () => {
     const sequence = ++loadSequence.current
+    activeLoad.current?.abort()
+    const controller = new AbortController()
+    activeLoad.current = controller
+    const { signal } = controller
+    const timer = setTimeout(() => controller.abort(), 30000)
+    setPlanLoading(true)
+    setPlanLoadError(false)
+    // Lesson generation must not hold the read-only dashboard behind a loader.
+    const todayRequest = apiFetch('/api/study-plan/today', { signal })
+      .then(async (res) => ({ ok: res.ok, data: res.ok ? await res.json() : null }))
+      .catch(() => null)
     try {
-      const [progRes, planRes] = await Promise.all([
-        apiFetch('/api/progress/summary'),
-        apiFetch('/api/study-plan/today'),
+      const [progRes, currentRes] = await Promise.all([
+        apiFetch('/api/progress/summary', { signal }),
+        apiFetch('/api/study-plan/current', { signal }),
       ])
       if (sequence !== loadSequence.current) return
       const prog = progRes.ok ? await progRes.json() : null
-      const plan = planRes.ok ? await planRes.json() : null
+      const current = currentRes.ok ? await currentRes.json() : null
       if (sequence !== loadSequence.current) return
       if (progRes.ok) {
         setProgress({
@@ -142,7 +156,26 @@ export default function DashboardPage() {
         setVocabularyTotal(0)
         setVocabularyProgress(0)
       }
-      if (planRes.ok) {
+      if (current) {
+        setHasPlan(true)
+        setPlanId(current.id)
+        setCefrLevel(current.cefr_level ?? null)
+        setProgressDay(current.progress_day ?? 0)
+        setTotalDays(current.duration_weeks * current.days_per_week)
+      } else if (currentRes.status === 404 || currentRes.ok) {
+        setHasPlan(false)
+        setPlanId(null)
+        setCefrLevel(null)
+        setProgressDay(0)
+        setTotalDays(0)
+      } else {
+        throw new Error('Failed to load study plan')
+      }
+      setLoading(false)
+      const today = await todayRequest
+      if (sequence !== loadSequence.current) return
+      const plan = today?.data
+      if (today?.ok) {
         setCefrLevel(plan.cefr_level ?? null)
         setPlanId(plan.plan_id ?? null)
         setCompletion(plan.completion ?? null)
@@ -162,6 +195,11 @@ export default function DashboardPage() {
           }))
         )
         setHasPlan(true)
+        if (plan.lessons.length === 0 && plan.completion?.state === 'in_progress') {
+          setPlanLoadError(true)
+        }
+      } else if (current) {
+        setPlanLoadError(true)
       } else {
         setCefrLevel(null)
         setPlanId(null)
@@ -175,19 +213,26 @@ export default function DashboardPage() {
     } catch {
       if (sequence === loadSequence.current) setLoadError(true)
     } finally {
-      if (sequence === loadSequence.current) setLoading(false)
+      clearTimeout(timer)
+      if (sequence === loadSequence.current) {
+        setLoading(false)
+        setPlanLoading(false)
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-fetch when active language changes
   }, [setProgress, setTodayLessons, activeLanguage?.code])
 
   useEffect(() => {
+    // The language switcher restores this context before fetching plan data.
+    if (!activeLanguage?.code) return
     setLoading(true)
     setLoadError(false)
     loadData()
     return () => {
       loadSequence.current += 1
+      activeLoad.current?.abort()
     }
-  }, [loadData])
+  }, [loadData, activeLanguage?.code])
 
   async function skipDay() {
     if (skipping) return
@@ -338,7 +383,25 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          {!hasPlan ? (
+          {planLoading ? (
+            <PageLoading label={t('loadingProgress')} fullScreen={false} />
+          ) : planLoadError ? (
+            <div className="space-y-3" role="status">
+              <p className="text-fl-muted-2 text-sm">{tError('body')}</p>
+              <button
+                onClick={() => loadData()}
+                className="text-fl-accent text-sm underline"
+              >
+                {tError('retry')}
+              </button>
+              <Link
+                href="/plan"
+                className="text-fl-accent ml-4 text-sm underline"
+              >
+                {tNav('myPlan')}
+              </Link>
+            </div>
+          ) : !hasPlan ? (
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-fl-fg font-mono text-xl font-bold tracking-tight">

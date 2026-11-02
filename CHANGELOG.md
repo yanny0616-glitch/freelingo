@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Chinese edition dashboard fix - 2026-11-02
+
+### Fixed
+
+- Render dashboard progress independently of AI lesson generation, avoid duplicate initial language requests, and provide inline lesson retry feedback.
+- Remove redundant browser-language reloads and avoid initializing WebGL for ordinary page loading.
+
 ## Chinese edition - 2026-11-02
 
 ### Added

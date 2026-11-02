@@ -260,6 +260,16 @@ Zustand stores shared cross-route state:
 Screen-specific forms, async state, playback, selections, and modal state remain local React state.
 Do not promote local state into a global store without a cross-route requirement.
 
+The dashboard waits for an active language before issuing plan requests. Progress summary and the
+read-only current plan render independently of `/api/study-plan/today`, which can generate lessons.
+Lesson loading and retry feedback stay inline, with a 30-second request budget. Cleanup aborts stale
+requests as well as discarding their responses. Empty lessons during an incomplete plan show retry
+feedback rather than claiming that all work is complete.
+
+Interface locale resolution belongs to request middleware; the root layout does not reload the page
+to redetect the browser language. Default full-page loading uses the static logo instead of creating
+a WebGL scene; explicit feedback animations retain the existing animated avatar.
+
 Dashboard's `components/dashboard/ProgressOverview.tsx` renders existing plan-scoped progress with
 prominent XP/streak cards, today's XP, a seven-day UTC strip, and compact lesson/accuracy metrics.
 `today_xp` and `activity_week` come from `/api/progress/summary` and stay in page-local state. Request
