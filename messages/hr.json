@@ -847,7 +847,12 @@
     "exitConfirmTitle": "Izaći iz lekcije?",
     "exitConfirmMessage": "Izgubit ćeš napredak u ovoj lekciji.",
     "dayComplete": "Dan je dovršen!",
-    "dayCompleteMsg": "Dovršio si ovaj dan svojeg plana. Nastavi kad god ti odgovara."
+    "dayCompleteMsg": "Dovršio si ovaj dan svojeg plana. Nastavi kad god ti odgovara.",
+    "regenerateLesson": "Regenerate lesson",
+    "regeneratingLesson": "Regenerating… this can take a minute or two",
+    "regenerateLessonTitle": "Regenerate this lesson?",
+    "regenerateLessonMessage": "The explanation, vocabulary and exercises will be replaced with new ones in your current native language. This is only available before you answer any exercise.",
+    "regenerateLessonError": "Could not regenerate the lesson. Please try again."
   },
   "flashcards": {
     "title": "Kartice",

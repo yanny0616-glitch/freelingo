@@ -847,7 +847,12 @@
     "exitConfirmTitle": "Sair da lição?",
     "exitConfirmMessage": "O seu progresso nesta lição será perdido.",
     "dayComplete": "Dia concluído!",
-    "dayCompleteMsg": "Você concluiu este dia do plano. Continue quando for conveniente."
+    "dayCompleteMsg": "Você concluiu este dia do plano. Continue quando for conveniente.",
+    "regenerateLesson": "Regenerate lesson",
+    "regeneratingLesson": "Regenerating… this can take a minute or two",
+    "regenerateLessonTitle": "Regenerate this lesson?",
+    "regenerateLessonMessage": "The explanation, vocabulary and exercises will be replaced with new ones in your current native language. This is only available before you answer any exercise.",
+    "regenerateLessonError": "Could not regenerate the lesson. Please try again."
   },
   "flashcards": {
     "title": "Cartões",

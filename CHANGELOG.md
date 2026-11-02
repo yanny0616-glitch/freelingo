@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Auto-growing message box with Shift+Enter for new lines, voice dictation, a jump-to-latest button, and message timestamps.
 - Per-conversation model choice from the active AI channels; administrators can always choose, and learners can when enabled on the AI channels page.
 
+- Regenerate lesson: lessons with no answered exercises can be regenerated from the lesson page, for example after changing the native language.
 - Simplified Chinese (`zh`) can be chosen as the native language at registration, in Settings, and in user administration, so lesson explanations, translations, hints and answer feedback are written in Chinese.
 
 ### Fixed

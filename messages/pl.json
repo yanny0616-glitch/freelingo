@@ -847,7 +847,12 @@
     "exitConfirmTitle": "Wyjść z lekcji?",
     "exitConfirmMessage": "Twój postęp w tej lekcji zostanie utracony.",
     "dayComplete": "Dzień ukończony!",
-    "dayCompleteMsg": "Ten dzień planu jest już ukończony. Kontynuuj, kiedy Ci pasuje."
+    "dayCompleteMsg": "Ten dzień planu jest już ukończony. Kontynuuj, kiedy Ci pasuje.",
+    "regenerateLesson": "Regenerate lesson",
+    "regeneratingLesson": "Regenerating… this can take a minute or two",
+    "regenerateLessonTitle": "Regenerate this lesson?",
+    "regenerateLessonMessage": "The explanation, vocabulary and exercises will be replaced with new ones in your current native language. This is only available before you answer any exercise.",
+    "regenerateLessonError": "Could not regenerate the lesson. Please try again."
   },
   "flashcards": {
     "title": "Fiszki",

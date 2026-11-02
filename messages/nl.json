@@ -847,7 +847,12 @@
     "exitConfirmTitle": "Les afsluiten?",
     "exitConfirmMessage": "Je voortgang in deze les gaat verloren.",
     "dayComplete": "Dag voltooid!",
-    "dayCompleteMsg": "Je hebt deze dag van je plan afgerond. Ga verder wanneer het jou uitkomt."
+    "dayCompleteMsg": "Je hebt deze dag van je plan afgerond. Ga verder wanneer het jou uitkomt.",
+    "regenerateLesson": "Regenerate lesson",
+    "regeneratingLesson": "Regenerating… this can take a minute or two",
+    "regenerateLessonTitle": "Regenerate this lesson?",
+    "regenerateLessonMessage": "The explanation, vocabulary and exercises will be replaced with new ones in your current native language. This is only available before you answer any exercise.",
+    "regenerateLessonError": "Could not regenerate the lesson. Please try again."
   },
   "flashcards": {
     "title": "Flashcards",

@@ -847,7 +847,12 @@
     "exitConfirmTitle": "退出课程？",
     "exitConfirmMessage": "本节课程的学习进度将丢失。",
     "dayComplete": "今日计划已完成！",
-    "dayCompleteMsg": "你已完成计划中这一天的课程，可以在方便时继续。"
+    "dayCompleteMsg": "你已完成计划中这一天的课程，可以在方便时继续。",
+    "regenerateLesson": "重新生成课程",
+    "regeneratingLesson": "正在重新生成，大约需要一两分钟…",
+    "regenerateLessonTitle": "重新生成这节课？",
+    "regenerateLessonMessage": "讲解、词汇和练习会按你当前的母语重新生成并替换现有内容。只有在还没答题时才能重新生成。",
+    "regenerateLessonError": "重新生成失败，请稍后再试。"
   },
   "flashcards": {
     "title": "单词闪卡",

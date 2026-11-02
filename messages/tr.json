@@ -847,7 +847,12 @@
     "exitConfirmTitle": "Dersten çıkılsın mı?",
     "exitConfirmMessage": "Bu dersteki ilerlemeniz kaybolacak.",
     "dayComplete": "Gün tamamlandı!",
-    "dayCompleteMsg": "Planınızın bu gününü tamamladınız. Size uygun olan herhangi bir zamanda devam edin."
+    "dayCompleteMsg": "Planınızın bu gününü tamamladınız. Size uygun olan herhangi bir zamanda devam edin.",
+    "regenerateLesson": "Regenerate lesson",
+    "regeneratingLesson": "Regenerating… this can take a minute or two",
+    "regenerateLessonTitle": "Regenerate this lesson?",
+    "regenerateLessonMessage": "The explanation, vocabulary and exercises will be replaced with new ones in your current native language. This is only available before you answer any exercise.",
+    "regenerateLessonError": "Could not regenerate the lesson. Please try again."
   },
   "flashcards": {
     "title": "Bilgi Kartları",

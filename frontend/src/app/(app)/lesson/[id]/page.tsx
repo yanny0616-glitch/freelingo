@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
-import { Check, Diff, X } from 'lucide-react'
+import { Check, Diff, RefreshCw, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { useProgressStore } from '@/store/progress'
 import { useLanguageStore } from '@/store/language'
@@ -144,6 +144,10 @@ export default function LessonPage() {
   const [regeneratingExercise, setRegeneratingExercise] = useState(false)
   const [regenerateError, setRegenerateError] = useState<string | null>(null)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showRegenerateLessonConfirm, setShowRegenerateLessonConfirm] =
+    useState(false)
+  const [regeneratingLesson, setRegeneratingLesson] = useState(false)
+  const [regenerateLessonError, setRegenerateLessonError] = useState(false)
   const [loadingNativeExplanation, setLoadingNativeExplanation] =
     useState(false)
   const [nativeExplanationError, setNativeExplanationError] = useState(false)
@@ -189,6 +193,29 @@ export default function LessonPage() {
   useEffect(() => {
     loadLesson()
   }, [loadLesson])
+
+  const regenerateLesson = async () => {
+    setShowRegenerateLessonConfirm(false)
+    setRegeneratingLesson(true)
+    setRegenerateLessonError(false)
+    try {
+      const res = await apiFetch(`/api/lessons/${id}/regenerate`, {
+        method: 'POST',
+      })
+      if (!res.ok) throw new Error('regenerate failed')
+      dismissTooltip()
+      setCurrentExercise(0)
+      setAnswer('')
+      setRegenerateError(null)
+      setOpenNativeHintIds(new Set())
+      setNativeExplanationError(false)
+      await loadLesson()
+    } catch {
+      setRegenerateLessonError(true)
+    } finally {
+      setRegeneratingLesson(false)
+    }
+  }
 
   const generateNativeExplanation = async () => {
     setLoadingNativeExplanation(true)
@@ -571,6 +598,14 @@ export default function LessonPage() {
     Record<string, unknown> | undefined
   const nativeExplanation = lesson?.content?.native_explanation as
     Record<string, unknown> | undefined
+  const lessonUnitId = getLessonUnitId(lesson)
+  // Only untouched lessons can be replaced; answers would be lost otherwise.
+  const canRegenerateLesson =
+    !!lesson &&
+    !isReview &&
+    lessonUnitId !== 'completion-test' &&
+    lessonUnitId !== 'level-test' &&
+    exercises.every((item) => item.user_answer === null)
 
   return (
     <>
@@ -626,6 +661,32 @@ export default function LessonPage() {
             <p className="text-fl-fg font-mono text-base font-bold tracking-wide">
               {lesson?.title}
             </p>
+            {canRegenerateLesson && (
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowRegenerateLessonConfirm(true)}
+                  disabled={regeneratingLesson}
+                  className="text-fl-muted-3 hover:text-fl-fg inline-flex items-center gap-1.5 font-mono text-xs tracking-wide transition-colors disabled:opacity-60"
+                >
+                  <RefreshCw
+                    className={cn(
+                      'size-3.5',
+                      regeneratingLesson && 'animate-spin'
+                    )}
+                    aria-hidden="true"
+                  />
+                  {regeneratingLesson
+                    ? t('regeneratingLesson')
+                    : t('regenerateLesson')}
+                </button>
+                {regenerateLessonError && (
+                  <span className="text-fl-error-fg font-mono text-xs">
+                    {t('regenerateLessonError')}
+                  </span>
+                )}
+              </div>
+            )}
             {explanation && (
               <div className="mt-4 max-w-[70ch] space-y-3">
                 {explanation.text != null && (
@@ -1372,6 +1433,15 @@ export default function LessonPage() {
           )
         })()}
       </div>
+
+      <ConfirmDialog
+        open={showRegenerateLessonConfirm}
+        title={t('regenerateLessonTitle')}
+        message={t('regenerateLessonMessage')}
+        confirmLabel={t('regenerateLesson')}
+        onConfirm={regenerateLesson}
+        onCancel={() => setShowRegenerateLessonConfirm(false)}
+      />
 
       <ConfirmDialog
         open={showExitConfirm}

@@ -5,10 +5,11 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from redis.asyncio import Redis
-from sqlalchemy import select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.analytics import enqueue_analytics
+from app.core.app_logger import get_logger
 from app.core.database import get_db
 from app.core.deps import (
     check_subscription_or_freemium_access,
@@ -16,6 +17,7 @@ from app.core.deps import (
     get_redis,
 )
 from app.core.limiter import limiter
+from app.data.curriculum import COMPLETION_UNIT_IDS, get_curriculum_units
 from app.models.lesson import Exercise, Lesson
 from app.models.study_plan import StudyPlan
 from app.models.user import User
@@ -36,6 +38,7 @@ from app.services.lesson_generator import (
     evaluate_fill_blank,
     evaluate_free_write,
     evaluate_pronunciation,
+    generate_lesson,
     hint_reveals_answer,
     regenerate_exercise,
 )
@@ -50,6 +53,7 @@ from app.services.progress_service import update_daily_progress, upsert_unit_com
 from app.utils.lesson_exercises import normalized_exercise_text
 
 router = APIRouter(prefix="/api/lessons", tags=["lessons"])
+logger = get_logger(__name__)
 
 
 _ANSWER_FEEDBACK: dict[str, dict[str, str]] = {
@@ -318,6 +322,120 @@ async def start_lesson(
     db: AsyncSession = Depends(get_db),
 ):
     lesson = await _get_lesson_for_user(lesson_id, current_user.id, db)
+    return lesson
+
+
+async def _ensure_lesson_regenerable(lesson: Lesson, db: AsyncSession) -> None:
+    if lesson.is_completed:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Completed lessons cannot be regenerated",
+        )
+    if lesson.unit_id in COMPLETION_UNIT_IDS:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This lesson cannot be regenerated",
+        )
+    answered = await db.scalar(
+        select(
+            exists().where(Exercise.lesson_id == lesson.id, Exercise.user_answer.is_not(None))
+        )
+    )
+    if answered:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Lessons with answered exercises cannot be regenerated",
+        )
+
+
+@router.post("/{lesson_id}/regenerate", response_model=LessonResponse)
+@limiter.limit("10/hour")
+async def regenerate_lesson(
+    request: Request,
+    lesson_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Replace an untouched lesson with freshly generated content and exercises."""
+    user_id = current_user.id
+    lesson = await _get_lesson_for_user(lesson_id, user_id, db)
+    await _ensure_lesson_regenerable(lesson, db)
+
+    plan = await db.get(StudyPlan, lesson.study_plan_id)
+    target_language = plan.target_language if plan else "en-GB"
+    grammar_points: list[str] = []
+    vocabulary_set_ids: list[str] = []
+    if lesson.unit_id:
+        for unit in get_curriculum_units(lesson.cefr_level, target_language):
+            if unit.id == lesson.unit_id:
+                grammar_points = unit.grammar_points
+                vocabulary_set_ids = unit.vocabulary_set_ids
+                break
+    previous_lessons = []
+    if lesson.unit_id:
+        siblings = await db.scalars(
+            select(Lesson)
+            .where(
+                Lesson.study_plan_id == lesson.study_plan_id,
+                Lesson.unit_id == lesson.unit_id,
+                Lesson.id != lesson.id,
+            )
+            .order_by(Lesson.week_number, Lesson.day_number, Lesson.id)
+        )
+        previous_lessons = [
+            {"title": item.title, "lesson_type": item.lesson_type, "content": item.content}
+            for item in siblings.all()
+        ]
+    request_args = {
+        "cefr_level": lesson.cefr_level,
+        "lesson_type": lesson.lesson_type,
+        "topic": lesson.title,
+        "week": lesson.week_number,
+        "day": lesson.day_number,
+        "unit_id": lesson.unit_id or "",
+        "grammar_points": grammar_points,
+        "vocabulary_set_ids": vocabulary_set_ids,
+        "target_language": target_language,
+        "native_language": current_user.native_language,
+        "previous_lessons": previous_lessons,
+    }
+    # Generation can take minutes; don't hold a transaction open meanwhile.
+    await db.rollback()
+
+    try:
+        content = await generate_lesson(**request_args)
+        content_dict = content.model_dump() if hasattr(content, "model_dump") else content
+    except Exception:
+        logger.exception("Failed to regenerate lesson %s", lesson_id)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not regenerate lesson at this time",
+        )
+    exercises_data = content_dict.get("exercises") or []
+    if not exercises_data:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not regenerate lesson at this time",
+        )
+
+    # The learner may have started answering while the new lesson was generated.
+    lesson = await _get_lesson_for_user(lesson_id, user_id, db, for_update=True)
+    await _ensure_lesson_regenerable(lesson, db)
+    await db.execute(delete(Exercise).where(Exercise.lesson_id == lesson.id))
+    lesson.content = content_dict
+    for item in exercises_data:
+        db.add(
+            Exercise(
+                lesson_id=lesson.id,
+                exercise_type=item.get("type", "multiple_choice"),
+                question=item.get("question", ""),
+                options=item.get("options"),
+                correct_answer=item.get("correct", ""),
+                explanation=item.get("explanation"),
+            )
+        )
+    await db.commit()
+    await db.refresh(lesson)
     return lesson
 
 

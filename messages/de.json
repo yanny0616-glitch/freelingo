@@ -847,7 +847,12 @@
     "exitConfirmTitle": "Lektion beenden?",
     "exitConfirmMessage": "Dein Fortschritt in dieser Lektion geht verloren.",
     "dayComplete": "Tag abgeschlossen!",
-    "dayCompleteMsg": "Du hast diesen Tag im Lernplan abgeschlossen. Mach weiter, wann es dir passt."
+    "dayCompleteMsg": "Du hast diesen Tag im Lernplan abgeschlossen. Mach weiter, wann es dir passt.",
+    "regenerateLesson": "Regenerate lesson",
+    "regeneratingLesson": "Regenerating… this can take a minute or two",
+    "regenerateLessonTitle": "Regenerate this lesson?",
+    "regenerateLessonMessage": "The explanation, vocabulary and exercises will be replaced with new ones in your current native language. This is only available before you answer any exercise.",
+    "regenerateLessonError": "Could not regenerate the lesson. Please try again."
   },
   "flashcards": {
     "title": "Karteikarten",

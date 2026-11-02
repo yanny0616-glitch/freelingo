@@ -847,7 +847,12 @@
     "exitConfirmTitle": "Lämna lektionen?",
     "exitConfirmMessage": "Dina framsteg i den här lektionen går förlorade.",
     "dayComplete": "Dagen är klar!",
-    "dayCompleteMsg": "Du har slutfört den här dagen i din plan. Fortsätt när det passar dig."
+    "dayCompleteMsg": "Du har slutfört den här dagen i din plan. Fortsätt när det passar dig.",
+    "regenerateLesson": "Regenerate lesson",
+    "regeneratingLesson": "Regenerating… this can take a minute or two",
+    "regenerateLessonTitle": "Regenerate this lesson?",
+    "regenerateLessonMessage": "The explanation, vocabulary and exercises will be replaced with new ones in your current native language. This is only available before you answer any exercise.",
+    "regenerateLessonError": "Could not regenerate the lesson. Please try again."
   },
   "flashcards": {
     "title": "Gloskort",

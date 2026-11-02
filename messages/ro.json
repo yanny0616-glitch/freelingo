@@ -847,7 +847,12 @@
     "exitConfirmTitle": "Ieșiți din lecție?",
     "exitConfirmMessage": "Progresul dvs. la această lecție va fi pierdut.",
     "dayComplete": "Ziua finalizată!",
-    "dayCompleteMsg": "Ai finalizat această zi din plan. Continuă când îți este convenabil."
+    "dayCompleteMsg": "Ai finalizat această zi din plan. Continuă când îți este convenabil.",
+    "regenerateLesson": "Regenerate lesson",
+    "regeneratingLesson": "Regenerating… this can take a minute or two",
+    "regenerateLessonTitle": "Regenerate this lesson?",
+    "regenerateLessonMessage": "The explanation, vocabulary and exercises will be replaced with new ones in your current native language. This is only available before you answer any exercise.",
+    "regenerateLessonError": "Could not regenerate the lesson. Please try again."
   },
   "flashcards": {
     "title": "Carduri flash",
