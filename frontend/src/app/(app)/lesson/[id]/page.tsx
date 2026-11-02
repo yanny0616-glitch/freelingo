@@ -662,12 +662,12 @@ export default function LessonPage() {
               {lesson?.title}
             </p>
             {canRegenerateLesson && (
-              <div className="mt-2 flex flex-wrap items-center gap-3">
+              <div className="mt-3 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setShowRegenerateLessonConfirm(true)}
                   disabled={regeneratingLesson}
-                  className="text-fl-muted-3 hover:text-fl-fg inline-flex items-center gap-1.5 font-mono text-xs tracking-wide transition-colors disabled:opacity-60"
+                  className="border-fl-border text-fl-muted-1 hover:text-fl-fg hover:border-fl-border-2 inline-flex items-center gap-2 border px-3 py-1.5 font-mono text-xs tracking-widest uppercase transition-colors disabled:opacity-60"
                 >
                   <RefreshCw
                     className={cn(
