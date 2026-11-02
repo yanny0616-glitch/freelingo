@@ -675,6 +675,28 @@ class TestAnthropicChat:
             assert exc_info.value.raw_response == '{"answer":'
 
 
+    @pytest.mark.asyncio
+    async def test_ignores_thinking_blocks(self, monkeypatch):
+        _make_anthropic_settings(monkeypatch)
+
+        from app.services.llm_adapter import LLMAdapter
+
+        adapter = LLMAdapter()
+        resp = SimpleNamespace(
+            content=[
+                SimpleNamespace(type="thinking", thinking="Plan the answer", signature="sig"),
+                SimpleNamespace(type="redacted_thinking", data="opaque"),
+                SimpleNamespace(type="text", text='{"answer":'),
+                SimpleNamespace(type="text", text=' "Paris"}'),
+            ],
+            stop_reason="end_turn",
+        )
+        with patch.object(
+            adapter._anthropic.messages, "create", new_callable=AsyncMock, return_value=resp
+        ):
+            assert await adapter.chat([{"role": "user", "content": "Hi"}]) == '{"answer": "Paris"}'
+
+
 # ---------------------------------------------------------------------------
 # Anthropic error mapping
 # ---------------------------------------------------------------------------

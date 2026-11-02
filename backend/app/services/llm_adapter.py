@@ -1131,7 +1131,13 @@ class LLMAdapter:
 
         if stream:
             return response
-        content = response.content[0].text if response.content else ""
+        # Models with thinking enabled return thinking blocks before the answer;
+        # only text blocks are part of the reply.
+        content = "".join(
+            block.text
+            for block in response.content or []
+            if isinstance(getattr(block, "text", None), str)
+        )
         if response.stop_reason == "max_tokens":
             raise LLMResponseError(
                 "Anthropic response was truncated after reaching the configured output token limit",
