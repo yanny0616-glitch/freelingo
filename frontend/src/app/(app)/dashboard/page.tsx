@@ -224,6 +224,21 @@ export default function DashboardPage() {
   }, [setProgress, setTodayLessons, activeLanguage?.code])
 
   useEffect(() => {
+    if (activeLanguage?.code) return
+    let canceled = false
+    // Share the switcher's restoration and expose failure instead of waiting forever.
+    void useLanguageStore.getState().fetchLanguages().then((ok) => {
+      if (!canceled && !ok) {
+        setLoadError(true)
+        setLoading(false)
+      }
+    })
+    return () => {
+      canceled = true
+    }
+  }, [activeLanguage?.code])
+
+  useEffect(() => {
     // The language switcher restores this context before fetching plan data.
     if (!activeLanguage?.code) return
     setLoading(true)
@@ -277,7 +292,16 @@ export default function DashboardPage() {
           onClick={() => {
             setLoadError(false)
             setLoading(true)
-            loadData()
+            if (activeLanguage?.code) {
+              loadData()
+            } else {
+              void useLanguageStore.getState().fetchLanguages().then((ok) => {
+                if (!ok) {
+                  setLoadError(true)
+                  setLoading(false)
+                }
+              })
+            }
           }}
           className="text-fl-accent font-mono text-xs tracking-widest uppercase underline"
         >
