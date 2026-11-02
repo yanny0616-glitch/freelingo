@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Chinese edition tutor chat - 2026-11-02
+
+### Added
+
+- Tutor chat: stop a reply mid-stream (the partial reply is kept), regenerate the last reply, copy messages, and edit a sent message to resend it.
+- Conversation search across titles and messages, date grouping, inline rename, and automatic short titles in the learner's native language.
+- Auto-growing message box with Shift+Enter for new lines, voice dictation, a jump-to-latest button, and message timestamps.
+- Per-conversation model choice from the active AI channels; administrators can always choose, and learners can when enabled on the AI channels page.
+
+### Fixed
+
+- Anthropic models that return thinking blocks no longer break lesson generation and other non-streaming AI features.
+- Chat history now shows the latest 200 messages instead of only the first 30.
+
 ## Chinese edition AI channels - 2026-11-02
 
 ### Added

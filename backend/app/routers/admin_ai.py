@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.limiter import limiter
-from app.models.ai_channel import AIChannel, AISpeechSettings
+from app.models.ai_channel import AIChannel, AISettings
 from app.models.user import User
 from app.schemas.ai_channel import (
     AIChannelCreate,
@@ -21,6 +21,7 @@ from app.schemas.ai_channel import (
     AIChannelResponse,
     AIChannelTestResponse,
     AIChannelUpdate,
+    AIChatSettingsPayload,
     AIConfigResponse,
     AIRuntimeStatus,
     AISpeechSettingsPayload,
@@ -92,13 +93,16 @@ async def _config_response(request: Request, db: AsyncSession) -> AIConfigRespon
     channels = (
         await db.scalars(select(AIChannel).order_by(AIChannel.priority.desc(), AIChannel.id))
     ).all()
-    speech = await db.get(AISpeechSettings, 1)
+    speech = await db.get(AISettings, 1)
     return AIConfigResponse(
         channels=[_channel_response(channel) for channel in channels],
         speech=(
             AISpeechSettingsPayload.model_validate(speech)
             if speech
             else AISpeechSettingsPayload()
+        ),
+        chat=AIChatSettingsPayload(
+            learner_model_switch=bool(speech and speech.learner_model_switch)
         ),
         runtime=_runtime_status(request),
     )
@@ -169,7 +173,7 @@ async def update_channel(
     elif data.api_key and data.api_key.strip():
         _set_api_key(channel, data.api_key)
     if channel.provider not in SPEECH_PROVIDERS:
-        speech = await db.get(AISpeechSettings, 1)
+        speech = await db.get(AISettings, 1)
         if speech and channel_id in (speech.tts_channel_id, speech.stt_channel_id):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -188,7 +192,7 @@ async def delete_channel(
     db: AsyncSession = Depends(get_db),
 ):
     channel = await _get_channel(db, channel_id)
-    speech = await db.get(AISpeechSettings, 1)
+    speech = await db.get(AISettings, 1)
     if speech is not None:
         # Mirror ON DELETE SET NULL explicitly so every database behaves the same.
         if speech.tts_channel_id == channel_id:
@@ -217,12 +221,29 @@ async def update_speech(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Speech requires an OpenAI or OpenAI-compatible channel",
             )
-    speech = await db.get(AISpeechSettings, 1)
+    speech = await db.get(AISettings, 1)
     if speech is None:
-        speech = AISpeechSettings(id=1)
+        speech = AISettings(id=1)
         db.add(speech)
     for field, value in data.model_dump().items():
         setattr(speech, field, value)
+    await _commit_and_apply(request, db)
+    return await _config_response(request, db)
+
+
+@router.put("/chat", response_model=AIConfigResponse)
+@limiter.limit("30/minute")
+async def update_chat_settings(
+    request: Request,
+    data: AIChatSettingsPayload,
+    _admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    settings_row = await db.get(AISettings, 1)
+    if settings_row is None:
+        settings_row = AISettings(id=1)
+        db.add(settings_row)
+    settings_row.learner_model_switch = data.learner_model_switch
     await _commit_and_apply(request, db)
     return await _config_response(request, db)
 

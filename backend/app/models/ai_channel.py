@@ -56,11 +56,11 @@ class AIChannel(Base):
     )
 
 
-class AISpeechSettings(Base):
-    """Singleton row selecting which channels serve text-to-speech and speech-to-text."""
+class AISettings(Base):
+    """Singleton AI settings: speech routing and learner model choice."""
 
-    __tablename__ = "ai_speech_settings"
-    __table_args__ = (CheckConstraint("id = 1", name="ck_ai_speech_settings_singleton"),)
+    __tablename__ = "ai_settings"
+    __table_args__ = (CheckConstraint("id = 1", name="ck_ai_settings_singleton"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False, default=1)
     tts_channel_id: Mapped[int | None] = mapped_column(
@@ -75,6 +75,8 @@ class AISpeechSettings(Base):
         Integer, ForeignKey("ai_channels.id", ondelete="SET NULL"), nullable=True
     )
     stt_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Administrators can always pick a channel per conversation; learners only when enabled.
+    learner_model_switch: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=_utcnow, onupdate=_utcnow
     )

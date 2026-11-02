@@ -119,15 +119,16 @@ Administrator-managed AI provider connection used for text generation and, optio
 - `is_enabled` — required boolean, default `true`.
 - `created_at`, `updated_at` — datetimes; `updated_at` changes on every modification and drives runtime reloads.
 
-## AISpeechSettings (`ai_speech_settings`)
+## AISettings (`ai_settings`)
 
-Singleton speech routing managed by administrators.
+Singleton AI settings managed by administrators: speech routing and learner model choice.
 
-- `id` — integer primary key constrained to `1` by `ck_ai_speech_settings_singleton`.
+- `id` — integer primary key constrained to `1` by `ck_ai_settings_singleton`.
 - `tts_channel_id`, `stt_channel_id` — nullable foreign keys to `ai_channels.id` with `ON DELETE SET NULL`; `null` keeps the environment-configured service.
 - `tts_model`, `tts_voice`, `stt_model` — nullable; empty values use `tts-1`, `nova`, and `whisper-1`.
 - `tts_speed` — required float, default `1.0`, validated between `0.25` and `4.0`.
 - `tts_openai_voices` — required boolean, default `true`; when false, learner voice choices are ignored and the administrator voice is used.
+- `learner_model_switch` — required boolean, default `false`; lets learners choose a text channel per conversation. Administrators always can.
 - `updated_at` — datetime updated on modification.
 
 ## UserLanguage (`user_languages`)
@@ -309,6 +310,7 @@ Grouping of chat messages (text and voice) into named conversations.
 - target_language — Type: string (nullable); Notes: Indexed conversation-language snapshot
 - title — Type: string; Notes: Auto-generated or user-set
 - source — Type: string; Notes: Creation origin, `'chat'` or `'voice'` (default `'chat'`); not the modality of subsequent turns
+- ai_channel_id — Type: integer (nullable); Notes: FK → ai_channels (SET NULL); preferred text channel, `null` for automatic routing
 - created_at — Type: datetime; Notes: —
 - updated_at — Type: datetime; Notes: —
 

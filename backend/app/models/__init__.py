@@ -1,4 +1,4 @@
-from app.models.ai_channel import AIChannel, AISpeechSettings
+from app.models.ai_channel import AIChannel, AISettings
 from app.models.chat_history import ChatHistory
 from app.models.competency import UserCompetency
 from app.models.conversation import Conversation
@@ -21,7 +21,7 @@ from app.models.user_language import UserLanguage
 
 __all__ = [
     "AIChannel",
-    "AISpeechSettings",
+    "AISettings",
     "ChatHistory",
     "UserCompetency",
     "Conversation",

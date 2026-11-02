@@ -64,6 +64,7 @@ interface RuntimeStatus {
 interface AIConfig {
   channels: AIChannel[]
   speech: SpeechSettings
+  chat: { learner_model_switch: boolean }
   runtime: RuntimeStatus
 }
 
@@ -211,6 +212,7 @@ export default function AdminAIPage() {
   const [speechSaving, setSpeechSaving] = useState(false)
   const [speechNotice, setSpeechNotice] = useState('')
   const [speechError, setSpeechError] = useState('')
+  const [chatSaving, setChatSaving] = useState(false)
 
   function applyConfig(data: AIConfig) {
     setConfig(data)
@@ -427,6 +429,24 @@ export default function AdminAIPage() {
       setSpeechError(t('aiChannels.saveError'))
     } finally {
       setSpeechSaving(false)
+    }
+  }
+
+  async function toggleLearnerSwitch(enabled: boolean) {
+    setChatSaving(true)
+    setError('')
+    try {
+      const response = await apiFetch('/api/admin/ai/chat', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learner_model_switch: enabled }),
+      })
+      if (!response.ok) throw new Error('save failed')
+      applyConfig(await response.json())
+    } catch {
+      setError(t('aiChannels.saveError'))
+    } finally {
+      setChatSaving(false)
     }
   }
 
@@ -951,6 +971,26 @@ export default function AdminAIPage() {
                   })}
                 </ul>
               )}
+            </AdminPanel>
+
+            <AdminPanel title={t('aiChannels.chatTitle')}>
+              <label className="flex gap-3 px-5 py-4 font-mono text-xs">
+                <input
+                  type="checkbox"
+                  checked={config.chat.learner_model_switch}
+                  disabled={chatSaving}
+                  onChange={(event) => toggleLearnerSwitch(event.target.checked)}
+                  className="accent-fl-accent mt-0.5 size-4 shrink-0"
+                />
+                <span>
+                  <span className="text-fl-fg block font-bold">
+                    {t('aiChannels.learnerModelSwitch')}
+                  </span>
+                  <span className="text-fl-muted-3 mt-1 block">
+                    {t('aiChannels.learnerModelSwitchHint')}
+                  </span>
+                </span>
+              </label>
             </AdminPanel>
 
             {speech && (

@@ -114,6 +114,12 @@ class AISpeechSettingsPayload(BaseModel):
         return _clean_optional(value)
 
 
+class AIChatSettingsPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+    learner_model_switch: bool = False
+
+
 class AIRuntimeStatus(BaseModel):
     text_source: Literal["channels", "environment"]
     text_channels: list[str]
@@ -128,6 +134,7 @@ class AIRuntimeStatus(BaseModel):
 class AIConfigResponse(BaseModel):
     channels: list[AIChannelResponse]
     speech: AISpeechSettingsPayload
+    chat: AIChatSettingsPayload
     runtime: AIRuntimeStatus
 
 

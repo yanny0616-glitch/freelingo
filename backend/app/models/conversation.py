@@ -30,6 +30,10 @@ class Conversation(Base):
         index=True,
     )
     target_language: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    # Preferred AI channel for this conversation; other channels remain failover targets.
+    ai_channel_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("ai_channels.id", ondelete="SET NULL"), nullable=True
+    )
 
     def __repr__(self) -> str:
         return f"<Conversation(id={self.id}, user_id={self.user_id}, source={self.source}, target_language={self.target_language})>"

@@ -628,6 +628,7 @@ class LLMChannelConfig:
     reasoning_effort: str | None = None
     max_tokens: int | None = None
     name: str = ""
+    channel_id: int | None = None
 
 
 class LLMAdapter:
@@ -639,6 +640,7 @@ class LLMAdapter:
             return
         self.provider = settings.LLM_PROVIDER
         self.name = self.provider
+        self.channel_id = None
         if self.provider == "ollama":
             self.client = AsyncOpenAI(
                 base_url=f"{settings.OLLAMA_BASE_URL}/v1",
@@ -667,6 +669,7 @@ class LLMAdapter:
     def _init_from_channel(self, config: LLMChannelConfig) -> None:
         self.provider = config.provider
         self.name = config.name or config.provider
+        self.channel_id = config.channel_id
         self.model = config.model
         base_url = config.base_url or None
         if config.provider == "anthropic":
@@ -1167,12 +1170,19 @@ class LLMRouter:
     def uses_channels(self) -> bool:
         return bool(self._channels)
 
-    def adapters(self) -> tuple[LLMAdapter, ...]:
+    def adapters(self, preferred_channel_id: int | None = None) -> tuple[LLMAdapter, ...]:
+        """Return adapters in failover order, starting with a preferred channel if active."""
         if self._channels:
-            return self._channels
+            preferred = [a for a in self._channels if a.channel_id == preferred_channel_id]
+            if preferred_channel_id is None or not preferred:
+                return self._channels
+            return (*preferred, *(a for a in self._channels if a is not preferred[0]))
         if self._env_adapter is None:
             self._env_adapter = LLMAdapter()
         return (self._env_adapter,)
+
+    def has_channel(self, channel_id: int) -> bool:
+        return any(adapter.channel_id == channel_id for adapter in self._channels)
 
     @property
     def provider(self) -> str:
@@ -1190,8 +1200,9 @@ class LLMRouter:
         tools: list[LLMTool] | None = None,
         tool_executor: ToolExecutor | None = None,
         fallback_messages: list[dict] | None = None,
+        preferred_channel_id: int | None = None,
     ) -> str | LLMStream:
-        adapters = self.adapters()
+        adapters = self.adapters(preferred_channel_id)
         for index, adapter in enumerate(adapters):
             try:
                 return await adapter.chat(

@@ -972,7 +972,30 @@
     "deleteConfirm": "删除",
     "enterToSend": "按回车发送",
     "continueInVoice": "继续语音对话",
-    "memoryUpdated": "记忆已更新"
+    "memoryUpdated": "记忆已更新",
+    "searchPlaceholder": "搜索对话",
+    "clearSearch": "清除搜索",
+    "noResults": "没有匹配的对话",
+    "group": {
+      "today": "今天",
+      "yesterday": "昨天",
+      "week": "最近 7 天",
+      "month": "最近 30 天",
+      "older": "更早"
+    },
+    "rename": "重命名",
+    "copy": "复制",
+    "copied": "已复制",
+    "edit": "编辑",
+    "editSave": "保存并发送",
+    "editCancel": "取消",
+    "regenerate": "重新生成",
+    "stop": "停止",
+    "stopped": "已停止",
+    "scrollToBottom": "回到最新",
+    "modelLabel": "模型",
+    "modelAuto": "自动",
+    "shiftEnterNewline": "Shift+回车换行"
   },
   "progress": {
     "title": "学习进度",
@@ -1345,7 +1368,10 @@
       "sttChannel": "语音识别渠道",
       "sttModel": "STT 模型",
       "speechHint": "Anthropic 渠道不能用于语音。",
-      "saveSpeech": "保存语音设置"
+      "saveSpeech": "保存语音设置",
+      "chatTitle": "导师聊天",
+      "learnerModelSwitch": "允许学员选择模型",
+      "learnerModelSwitchHint": "管理员始终可以为每个对话选择渠道。开启后学员也可以选择；关闭时学员的对话按上面的优先级使用渠道。"
     }
   },
   "faq": {

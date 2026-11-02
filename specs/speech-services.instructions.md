@@ -38,7 +38,7 @@ STT configuration:
 not enum-validated: values other than `openai` currently select the local adapter.
 
 Administrators can replace either environment service from the AI channels page
-(`ai_speech_settings`). A selected, enabled `openai` or `openai_compatible` channel is served through
+(`ai_settings`). A selected, enabled `openai` or `openai_compatible` channel is served through
 the OpenAI adapters with the channel base URL and key, the configured model (`tts-1` or `whisper-1`
 when empty), voice (`nova` when empty), and speed. Disabling, deleting, or clearing the channel
 restores the environment service. Routers always use the active `app.state` service, so voice

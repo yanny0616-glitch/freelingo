@@ -972,7 +972,30 @@
     "deleteConfirm": "Izbriši",
     "enterToSend": "Enter za slanje",
     "continueInVoice": "Nastavi glasom",
-    "memoryUpdated": "Uspomena je ažurirana"
+    "memoryUpdated": "Uspomena je ažurirana",
+    "searchPlaceholder": "Search conversations",
+    "clearSearch": "Clear search",
+    "noResults": "No matching conversations",
+    "group": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "week": "Previous 7 days",
+      "month": "Previous 30 days",
+      "older": "Older"
+    },
+    "rename": "Rename",
+    "copy": "Copy",
+    "copied": "Copied",
+    "edit": "Edit",
+    "editSave": "Save & send",
+    "editCancel": "Cancel",
+    "regenerate": "Regenerate",
+    "stop": "Stop",
+    "stopped": "Stopped",
+    "scrollToBottom": "Jump to latest",
+    "modelLabel": "Model",
+    "modelAuto": "Automatic",
+    "shiftEnterNewline": "Shift+Enter for a new line"
   },
   "progress": {
     "title": "Napredak",
@@ -1345,7 +1368,10 @@
       "sttChannel": "Speech-to-text channel",
       "sttModel": "STT model",
       "speechHint": "Anthropic channels cannot be used for speech.",
-      "saveSpeech": "Save speech settings"
+      "saveSpeech": "Save speech settings",
+      "chatTitle": "Tutor chat",
+      "learnerModelSwitch": "Let learners choose the model",
+      "learnerModelSwitchHint": "Administrators can always pick a channel for each conversation. When this is on, learners can too; otherwise their chats follow the priority order above."
     }
   },
   "faq": {

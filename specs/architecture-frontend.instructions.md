@@ -215,6 +215,24 @@ failures use static artwork. Generation participates in the shared minimum prese
 The component retains the mounted loading-counter lifecycle used by `PageLoading`. See
 `reading.instructions.md` and `listening.instructions.md` for generation behavior.
 
+## Written-chat page
+
+`app/(app)/chat/page.tsx` groups conversations by last activity (today, yesterday, previous 7 and
+30 days, older) and searches them through `GET /api/chat/conversations?q=` with a 300 ms debounce.
+Conversations can be renamed inline. After the first reply in a new conversation the page requests
+a generated title.
+
+Each message shows copy and a hover timestamp; tutor replies keep the audio player. Persisted
+text-chat learner messages can be edited, which resends the edited text and discards later turns.
+The last tutor reply can be regenerated. While a reply streams, Stop aborts the request and keeps
+the partial reply marked as stopped. Automatic scrolling follows output only while the reader is
+near the bottom; otherwise a jump-to-latest button appears.
+
+The input is an auto-growing textarea (Enter sends, Shift+Enter inserts a newline, and Enter during
+IME composition is ignored) with the shared `VoiceRecorder` for dictation when an active study plan
+exists. When `/api/chat/options` allows it, the header offers a model picker; the choice is stored on
+the conversation, or sent with the first message of a new one.
+
 ## Written-chat response presentation
 
 `components/chat/ChatMarkdown.tsx` uses `react-markdown` for assistant replies only in the written

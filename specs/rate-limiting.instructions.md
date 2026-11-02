@@ -67,6 +67,7 @@ memories, feedback reads/mutations, and review reads/deletes.
 - `POST /api/flashcards/generate`: `20/minute`.
 - `POST /api/flashcards/from-word`: `30/minute`.
 - `POST /api/chat`: `30/minute`.
+- `POST /api/chat/conversations/{id}/title`: `20/minute`.
 - `POST /api/conversation/warmup`: `20/minute`.
 - `POST /api/tts`: `20/minute`.
 - `POST /api/tts/tour/{locale}/{step}`: `20/minute`, including cache hits. Its Next.js proxy forwards
@@ -110,7 +111,7 @@ and honor `Retry-After` when present; generation itself remains limited to `5/mi
 - `PATCH /api/reviews/me`: `10/hour`.
 - `DELETE /api/reviews/me`: `10/hour`.
 - `POST /api/admin/dashboard-banner/translate`: `10/minute`.
-- `POST /api/admin/ai/channels`, `PUT /api/admin/ai/channels/{channel_id}`, `DELETE /api/admin/ai/channels/{channel_id}`, and `PUT /api/admin/ai/speech`: `30/minute` each.
+- `POST /api/admin/ai/channels`, `PUT /api/admin/ai/channels/{channel_id}`, `DELETE /api/admin/ai/channels/{channel_id}`, and `PUT /api/admin/ai/speech`, and `PUT /api/admin/ai/chat`: `30/minute` each.
 - `POST /api/admin/ai/test` and `POST /api/admin/ai/models`: `10/minute` each.
 - `POST /api/billing/webhook`: `200/minute`.
 

@@ -18,7 +18,8 @@ The frontend never calls an external provider directly.
 The shared `llm_adapter` is an `LLMRouter`. When administrators have enabled AI channels with a text
 model (`ai_channels`), it holds one `LLMAdapter` per channel in descending priority. `chat` and
 `structured_output` try each channel in order and move to the next one after any `LLMError`; the last
-channel's error is raised. Structured generation does not fail over once its deadline has passed,
+channel's error is raised. Callers may pass `preferred_channel_id` to try one active channel first,
+followed by the others in priority order; an inactive preferred channel is ignored. Structured generation does not fail over once its deadline has passed,
 and a stream does not fail over after it has been returned. Without usable channels, the router uses
 a single adapter built from the environment variables below, so environment-only deployments behave
 as before. Channel types are `openai` (Responses API), `anthropic` (native API), and

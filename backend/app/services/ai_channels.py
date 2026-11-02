@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.app_logger import get_logger
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
-from app.models.ai_channel import AIChannel, AISpeechSettings
+from app.models.ai_channel import AIChannel, AISettings
 from app.services.llm_adapter import LLMChannelConfig, llm_adapter
 from app.services.stt_service import OpenAISTTService
 from app.services.tts_service import OpenAITTSService
@@ -71,7 +71,15 @@ def channel_config(channel: AIChannel, *, model: str | None = None) -> LLMChanne
         reasoning_effort=channel.reasoning_effort,
         max_tokens=channel.max_tokens,
         name=channel.name,
+        channel_id=channel.id,
     )
+
+
+@dataclass(frozen=True)
+class TextChannel:
+    id: int
+    name: str
+    model: str
 
 
 @dataclass(frozen=True)
@@ -79,9 +87,11 @@ class RuntimeSnapshot:
     llm_channels: tuple[str, ...]
     tts_channel: str | None
     stt_channel: str | None
+    text_channels: tuple[TextChannel, ...] = ()
+    learner_model_switch: bool = False
 
 
-async def _load(db: AsyncSession) -> tuple[list[AIChannel], AISpeechSettings | None]:
+async def _load(db: AsyncSession) -> tuple[list[AIChannel], AISettings | None]:
     channels = list(
         (
             await db.scalars(
@@ -89,11 +99,11 @@ async def _load(db: AsyncSession) -> tuple[list[AIChannel], AISpeechSettings | N
             )
         ).all()
     )
-    speech = await db.get(AISpeechSettings, 1)
+    speech = await db.get(AISettings, 1)
     return channels, speech
 
 
-def _fingerprint(channels: list[AIChannel], speech: AISpeechSettings | None) -> tuple:
+def _fingerprint(channels: list[AIChannel], speech: AISettings | None) -> tuple:
     return (
         tuple((channel.id, channel.updated_at) for channel in channels),
         speech.updated_at if speech else None,
@@ -115,7 +125,7 @@ def _speech_channel(
     return channel, api_key
 
 
-def _apply(app: FastAPI, channels: list[AIChannel], speech: AISpeechSettings | None) -> None:
+def _apply(app: FastAPI, channels: list[AIChannel], speech: AISettings | None) -> None:
     llm_configs: list[LLMChannelConfig] = []
     for channel in channels:
         if not channel.is_enabled or not channel.model:
@@ -160,6 +170,11 @@ def _apply(app: FastAPI, channels: list[AIChannel], speech: AISpeechSettings | N
         llm_channels=tuple(config.name for config in llm_configs),
         tts_channel=tts_name,
         stt_channel=stt_name,
+        text_channels=tuple(
+            TextChannel(id=config.channel_id or 0, name=config.name, model=config.model)
+            for config in llm_configs
+        ),
+        learner_model_switch=bool(speech and speech.learner_model_switch),
     )
 
 
