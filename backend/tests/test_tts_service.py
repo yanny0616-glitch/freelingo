@@ -9,7 +9,7 @@ from app.data.phrasebook import get_phrasebook_categories
 from app.main import app
 from app.models.conversation import Conversation
 from app.routers import tts as tts_router
-from app.services.tts_service import OpenAITTSService
+from app.services.tts_service import KokoroTTSService, OpenAITTSService
 from tests.conftest import make_study_plan
 
 
@@ -275,9 +275,13 @@ async def test_chat_playback_converts_markdown_before_synthesis(
     conversation = Conversation(user_id=user.id, target_language="en-US", source=source)
     db_session.add(conversation)
     await db_session.commit()
-    service = SimpleNamespace(synthesize=AsyncMock(return_value=b"ID3audio"))
+    # The active service, not the environment variable, decides voice forwarding.
+    if provider == "openai":
+        service = object.__new__(OpenAITTSService)
+    else:
+        service = KokoroTTSService("http://unused", "af_heart")
+    service.synthesize = AsyncMock(return_value=b"ID3audio")
     monkeypatch.setattr(app.state, "tts_service", service, raising=False)
-    monkeypatch.setattr(settings, "TTS_PROVIDER", provider)
 
     response = await client.post(
         "/api/tts",

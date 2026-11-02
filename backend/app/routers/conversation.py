@@ -36,6 +36,7 @@ from app.services.freemium_service import (
 from app.services.language_helpers import lesson_practice_title, voice_session_title
 from app.services.lesson_voice_practice import load_lesson_voice_practice
 from app.services.llm_adapter import llm_adapter
+from app.services.tts_service import effective_tts_provider
 from app.services.memory_service import get_user_memories
 from app.services.quota_service import check_all_quotas
 from app.services.subscription_service import is_subscribed
@@ -212,7 +213,10 @@ async def conversation_ws(
         client_conversation_id_raw = auth_msg.get(
             "conversation_id"
         )  # optional: reserved for future API use
-        if settings.TTS_PROVIDER == "openai":
+        if (
+            effective_tts_provider(getattr(websocket.app.state, "tts_service", None))
+            == "openai"
+        ):
             _VALID_VOICES = frozenset(
                 {
                     "alloy",

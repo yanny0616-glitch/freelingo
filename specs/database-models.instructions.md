@@ -102,6 +102,34 @@ Singleton global announcement managed by administrators and displayed on authent
 Dismissal is valid only for the currently active revision.
 Adding a missing locale to a stored banner changes its content and increments the revision on save.
 
+## AIChannel (`ai_channels`)
+
+Administrator-managed AI provider connection used for text generation and, optionally, speech.
+
+- `id` — integer primary key.
+- `name` — required display name, max 80 characters.
+- `provider` — required; `openai_compatible`, `openai`, or `anthropic` (`ck_ai_channels_provider`).
+- `base_url` — nullable API base URL, max 500 characters; required by the API for `openai_compatible`.
+- `api_key_encrypted` — nullable Fernet token. The key is derived from `SECRET_KEY`; rotating `SECRET_KEY` makes stored keys unreadable until re-entered.
+- `api_key_hint` — nullable last four characters of the key for display.
+- `model` — nullable text model. Channels without a model are never used for text generation.
+- `reasoning_effort` — nullable OpenAI reasoning effort.
+- `max_tokens` — nullable Anthropic output limit; `ANTHROPIC_MAX_TOKENS` applies when empty.
+- `priority` — required integer, default `0`; higher values are tried first.
+- `is_enabled` — required boolean, default `true`.
+- `created_at`, `updated_at` — datetimes; `updated_at` changes on every modification and drives runtime reloads.
+
+## AISpeechSettings (`ai_speech_settings`)
+
+Singleton speech routing managed by administrators.
+
+- `id` — integer primary key constrained to `1` by `ck_ai_speech_settings_singleton`.
+- `tts_channel_id`, `stt_channel_id` — nullable foreign keys to `ai_channels.id` with `ON DELETE SET NULL`; `null` keeps the environment-configured service.
+- `tts_model`, `tts_voice`, `stt_model` — nullable; empty values use `tts-1`, `nova`, and `whisper-1`.
+- `tts_speed` — required float, default `1.0`, validated between `0.25` and `4.0`.
+- `tts_openai_voices` — required boolean, default `true`; when false, learner voice choices are ignored and the administrator voice is used.
+- `updated_at` — datetime updated on modification.
+
 ## UserLanguage (`user_languages`)
 
 Relates users to the languages they are learning. One row per user per language.

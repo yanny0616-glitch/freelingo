@@ -8,6 +8,13 @@ Settings → Profile → Interface Language and save. The interface locale does 
 change the study language, learning materials, account data, or configured AI providers.
 Chinese browser preferences are detected automatically; unrecognized locales default to Chinese.
 
+Administrators can configure AI providers in the web interface at **Admin → AI** (`/admin/ai`)
+instead of editing environment variables. Add OpenAI, Anthropic, or OpenAI-compatible channels
+(DeepSeek, OpenRouter, SiliconFlow, Ollama, one-api/new-api gateways, and similar), set their
+priority for automatic failover, and choose channels for text-to-speech and speech-to-text.
+API keys are encrypted with a key derived from `SECRET_KEY`; changing `SECRET_KEY` requires
+re-entering them. The environment variables remain the fallback when no channel is configured.
+
 The Chinese edition images are built on GitHub Actions by `chinese-edition.yml`,
 for Linux amd64, and published under this repository owner's GHCR namespace.
 Deploy the backend and frontend images with the same `zh-<commit SHA>` tag.

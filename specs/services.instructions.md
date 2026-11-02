@@ -15,6 +15,22 @@ The frontend never calls an external provider directly.
 
 `llm_adapter.py` provides provider-neutral access to Ollama, OpenAI, Anthropic, and DeepSeek.
 
+The shared `llm_adapter` is an `LLMRouter`. When administrators have enabled AI channels with a text
+model (`ai_channels`), it holds one `LLMAdapter` per channel in descending priority. `chat` and
+`structured_output` try each channel in order and move to the next one after any `LLMError`; the last
+channel's error is raised. Structured generation does not fail over once its deadline has passed,
+and a stream does not fail over after it has been returned. Without usable channels, the router uses
+a single adapter built from the environment variables below, so environment-only deployments behave
+as before. Channel types are `openai` (Responses API), `anthropic` (native API), and
+`openai_compatible` (Chat Completions against the channel base URL, used for DeepSeek, Ollama, and
+other gateways). Channel reasoning effort and Anthropic output limits replace
+`OPENAI_REASONING_EFFORT` and `ANTHROPIC_MAX_TOKENS` for that channel.
+
+`ai_channels.py` encrypts channel keys with a Fernet key derived from `SECRET_KEY`, and activates
+stored channels at startup and whenever an administrator changes them. Every worker also reloads
+them every 15 seconds when channel or speech-setting timestamps change. A channel whose key cannot be
+decrypted is skipped and logged.
+
 OpenAI uses the Responses API for every LLM request; Ollama and DeepSeek use Chat Completions and
 Anthropic uses its native API. The OpenAI model defaults to `gpt-6-luna`. Optional
 `OPENAI_REASONING_EFFORT` is sent as `reasoning.effort` on chat, structured generation, tool

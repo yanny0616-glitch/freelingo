@@ -12,6 +12,7 @@ bcrypt==5.0.0
 redis==8.1.0
 openai==3.31.0
 anthropic==1.15.0
+cryptography==50.0.2
 slowapi==0.1.10
 python-multipart==0.0.32
 fastapi-mail==1.6.8

@@ -22,7 +22,7 @@ in `rate-limiting.instructions.md`.
 
 ## Config — `/api/config`
 
-- **GET `/api/config`** — Rate limit: 60/min. Public runtime configuration flags for the frontend. Returns non-sensitive values including `allow_registration` (boolean, from `settings.ALLOW_REGISTRATION`), Stripe enablement/prices, TTS provider/voice, `maintenance_mode`, `freemium_trial_enabled`, and `dashboard_banner`. The banner field is `null` when no active singleton exists; otherwise it is `{revision, translations}` and omits admin-only source locale, active state, and timestamps.
+- **GET `/api/config`** — Rate limit: 60/min. Public runtime configuration flags for the frontend. Returns non-sensitive values including `allow_registration` (boolean, from `settings.ALLOW_REGISTRATION`), Stripe enablement/prices, the active TTS provider/voice (`tts_provider` is `local`, `openai` for a learner-selectable OpenAI voice list, or `custom` for an OpenAI-compatible service with one administrator-selected voice), `maintenance_mode`, `freemium_trial_enabled`, and `dashboard_banner`. The banner field is `null` when no active singleton exists; otherwise it is `{revision, translations}` and omits admin-only source locale, active state, and timestamps.
 
 ---
 
@@ -134,6 +134,22 @@ Requires `role="admin"`. Translation previews and saves must contain exactly `en
 - **GET `/api/admin/dashboard-banner`** — Rate limit: 60/min. Returns the singleton with `revision`, translations, `source_locale`, `is_active`, and timestamps, or `null` before the first save. Incomplete stored maps are returned unchanged for editing.
 - **POST `/translate`** — Rate limit: 10/min. Uses the configured LLM to translate `{source_locale, title, subtitle, description}` into all fifteen UI locales, preserving the validated source text exactly after trimming. Returns `{translations}` as an editable preview without saving; LLM failure returns HTTP 502.
 - **PUT `/api/admin/dashboard-banner`** — Rate limit: 60/min. Creates or updates the singleton from `{source_locale, is_active, translations}`. The server starts at revision 1 and increments the revision when source locale or translated content changes; changing only `is_active` does not increment it.
+
+---
+
+## Admin AI Channels — `/api/admin/ai`
+
+Requires `role="admin"`. Channels and speech routing are described in `services.instructions.md` and `speech-services.instructions.md`. API keys are write-only: responses expose `has_api_key`, a four-character `api_key_hint`, and `api_key_unreadable` (the stored key cannot be decrypted with the current `SECRET_KEY`), never the key itself.
+
+- **GET `/api/admin/ai`** — Rate limit: 60/min. Returns `{channels, speech, runtime}`. Channels are ordered by descending `priority`, then id. `speech` holds the singleton speech settings (defaults before the first save). `runtime` reports the active text channels in failover order or the environment provider/model, and whether TTS and STT use a channel or the environment.
+- **POST `/channels`** — Rate limit: 30/min. Creates a channel from `{name, provider, base_url, api_key, model, reasoning_effort, max_tokens, priority, is_enabled}` and returns HTTP 201 with the full configuration. `provider` is `openai_compatible`, `openai`, or `anthropic`; `openai_compatible` requires an `http(s)` `base_url`. `reasoning_effort` is kept only for `openai` and `max_tokens` only for `anthropic`.
+- **PUT `/channels/{channel_id}`** — Rate limit: 30/min. Replaces the channel fields. An omitted or blank `api_key` keeps the stored key; `clear_api_key=true` removes it. Changing a channel used for speech to `anthropic` returns HTTP 409. Unknown channels return HTTP 404.
+- **DELETE `/channels/{channel_id}`** — Rate limit: 30/min. Deletes the channel and clears any speech selection that used it.
+- **PUT `/speech`** — Rate limit: 30/min. Saves `{tts_channel_id, tts_model, tts_voice, tts_speed, tts_openai_voices, stt_channel_id, stt_model}`. A `null` channel keeps the environment service. Selecting an `anthropic` channel returns HTTP 422.
+- **POST `/test`** — Rate limit: 10/min. Sends one short non-streaming request with `{channel_id?, provider, base_url, api_key?, model?}` and returns `{ok, latency_ms, reply, error}`. A stored key is used when `api_key` is omitted; provider failures return HTTP 200 with `ok=false` and a truncated error.
+- **POST `/models`** — Rate limit: 10/min. Same body as `/test`; returns `{ok, models, error}` from the provider's model list.
+
+Every mutation commits, then immediately reloads the AI runtime in the handling worker.
 
 ---
 

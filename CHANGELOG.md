@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Chinese edition AI channels - 2026-11-02
+
+### Added
+
+- Administrator AI channels page (`/admin/ai`): add OpenAI, Anthropic, or OpenAI-compatible providers with encrypted API keys, fetch model lists, test connections, and order channels by priority with automatic failover.
+- Text-to-speech and speech-to-text can be routed to an OpenAI or OpenAI-compatible channel from the same page, with model, voice, and speed settings.
+
+### Changed
+
+- AI and speech providers configured in the administration page take precedence over the environment variables, which remain the fallback when no channel is configured.
+
 ## Chinese edition dashboard fix - 2026-11-02
 
 ### Fixed

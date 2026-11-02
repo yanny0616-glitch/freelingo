@@ -25,6 +25,7 @@ _AVATARS_DIR = "/app/avatars"
 _TTS_PREVIEWS_DIR = "/app/tts_previews"
 from app.routers import (
     admin,
+    admin_ai,
     admin_dashboard_banner,
     analytics,
     assessment,
@@ -54,6 +55,7 @@ from app.routers import (
 )
 from app.routers import config as config_router
 from app.routers import health as health_router
+from app.services.ai_channels import start_ai_runtime, stop_ai_runtime
 from app.services.stt_service import OpenAISTTService, WhisperSTTService
 from app.services.tts_service import KokoroTTSService, OpenAITTSService
 
@@ -104,7 +106,12 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
     else:
         app.state.stt_service = WhisperSTTService(settings.STT_BASE_URL)
 
-    yield
+    # Administrator-managed AI channels override the environment providers above.
+    ai_runtime_task = await start_ai_runtime(app)
+    try:
+        yield
+    finally:
+        await stop_ai_runtime(ai_runtime_task)
 
 
 app = FastAPI(title="FreeLingo API", version="0.1.0", lifespan=lifespan)
@@ -139,6 +146,7 @@ app.add_middleware(AnalyticsMiddleware)
 app.include_router(auth.router)
 app.include_router(analytics.router)
 app.include_router(admin.router)
+app.include_router(admin_ai.router)
 app.include_router(admin_dashboard_banner.router)
 app.include_router(assessment.router)
 app.include_router(study_plan.router)

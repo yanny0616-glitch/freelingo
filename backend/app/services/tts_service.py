@@ -43,6 +43,10 @@ class KokoroTTSService:
 
 
 class OpenAITTSService:
+    base_url: str | None = None
+    # False for OpenAI-compatible servers whose voices differ from OpenAI's.
+    openai_voices: bool = True
+
     def __init__(
         self,
         api_key: str,
@@ -50,12 +54,17 @@ class OpenAITTSService:
         voice: str,
         speed: float = 1.0,
         timeout: float | None = None,
+        *,
+        base_url: str | None = None,
+        openai_voices: bool = True,
     ) -> None:
-        self._client = openai.AsyncOpenAI(api_key=api_key)
+        self._client = openai.AsyncOpenAI(api_key=api_key or "not-needed", base_url=base_url)
         self.model = model
         self.voice = voice
         self.speed = speed
         self.timeout = timeout
+        self.base_url = base_url
+        self.openai_voices = openai_voices
 
     async def health(self) -> None:
         """Raise if OpenAI TTS is unreachable (lightweight models list call)."""
@@ -78,6 +87,8 @@ class OpenAITTSService:
             "speed": self.speed,
             "format": "mp3",
         }
+        if self.base_url:
+            identity["base_url"] = self.base_url
         instructions = self.get_instructions(language)
         if instructions:
             identity["instructions"] = instructions
@@ -134,3 +145,14 @@ class OpenAITTSService:
             request_id,
         )
         return audio
+
+
+def effective_tts_provider(service: object | None) -> str:
+    """Describe the active TTS service to routers and the frontend.
+
+    "openai" means learners may choose an OpenAI voice; "custom" is an
+    OpenAI-compatible server with one administrator-selected voice; "local" is Kokoro.
+    """
+    if isinstance(service, OpenAITTSService):
+        return "openai" if service.openai_voices else "custom"
+    return "local"

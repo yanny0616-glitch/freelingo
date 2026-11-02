@@ -8,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.app_logger import get_logger
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
@@ -20,7 +19,7 @@ from app.schemas.tts_stt import ContextualTTSRequest, TTSRequest
 from app.services.chat_markdown import chat_markdown_to_speech
 from app.services.prompts.common import TUTOR_DISPLAY_NAME
 from app.services.tour_audio import OPENAI_VOICES, get_tour_audio
-from app.services.tts_service import OpenAITTSService
+from app.services.tts_service import OpenAITTSService, effective_tts_provider
 
 router = APIRouter(prefix="/api", tags=["tts"])
 logger = get_logger(__name__)
@@ -47,11 +46,15 @@ async def tour_narration(
     """Speak frontend-localized tour text, reusing persistent audio across users."""
     if locale not in SUPPORTED_UI_LOCALES or step not in {f"step{i}" for i in range(1, 8)}:
         raise HTTPException(status_code=404, detail="Unknown tour narration")
-    if settings.TTS_PROVIDER == "openai" and body.voice and body.voice not in OPENAI_VOICES:
-        raise HTTPException(status_code=400, detail="Invalid voice name")
     service = getattr(request.app.state, "tts_service", None)
     if service is None:
         raise HTTPException(status_code=503, detail="TTS service is not enabled")
+    if (
+        effective_tts_provider(service) == "openai"
+        and body.voice
+        and body.voice not in OPENAI_VOICES
+    ):
+        raise HTTPException(status_code=400, detail="Invalid voice name")
     try:
         path = await get_tour_audio(service, locale=locale, text=body.text, voice=body.voice)
     except TimeoutError:
@@ -116,7 +119,7 @@ async def text_to_speech(
     # For local Kokoro TTS, ignore the client voice param — only OpenAI voices
     # should be forwarded. Prevents 400 errors when user switches from OpenAI
     # to local and stale OpenAI voice names (e.g. "nova") remain in localStorage.
-    voice = body.voice if settings.TTS_PROVIDER != "local" else None
+    voice = body.voice if effective_tts_provider(tts_service) == "openai" else None
     audio = await tts_service.synthesize(text, voice, language=language)
     synth_ms = (time.perf_counter() - synth_t0) * 1000
     total_ms = (time.perf_counter() - t0) * 1000
@@ -156,7 +159,7 @@ async def voice_preview(
     are served from the local cache without incurring further API costs.
     Only available when TTS_PROVIDER=openai.
     """
-    if settings.TTS_PROVIDER != "openai":
+    if effective_tts_provider(getattr(request.app.state, "tts_service", None)) != "openai":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Voice preview is only available with OpenAI TTS",

@@ -24,7 +24,8 @@ async def get_tour_audio(
     voice: str | None,
 ) -> Path:
     is_openai = isinstance(service, OpenAITTSService)
-    effective_voice = (voice or service.voice) if is_openai else service.voice
+    user_voice = is_openai and service.openai_voices
+    effective_voice = (voice or service.voice) if user_voice else service.voice
     if is_openai:
         key = service.get_cache_key(text, effective_voice, locale)
     else:

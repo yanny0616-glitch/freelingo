@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.models.flashcard import Flashcard
-from app.services.llm_adapter import llm_adapter
+from app.services.llm_adapter import LLMAdapter
 from tests.conftest import make_study_plan
 
 
@@ -73,7 +73,7 @@ async def test_storage_boundary_accepts_unicode_without_truncation(
 
 async def test_selected_word_is_validated_before_llm_call(client, test_user, plan, monkeypatch):
     call = AsyncMock()
-    monkeypatch.setattr(llm_adapter, "_call_with_retry", call)
+    monkeypatch.setattr(LLMAdapter, "_call_with_retry", call)
     response = await client.post(
         "/api/flashcards/from-word", headers=test_user[1], json={"word": "a" * 101}
     )
@@ -97,7 +97,7 @@ async def test_invalid_model_content_uses_existing_retry_and_never_partially_per
         )
 
     call = AsyncMock(side_effect=[output(invalid), output(valid if recovers else invalid)])
-    monkeypatch.setattr(llm_adapter, "_call_with_retry", call)
+    monkeypatch.setattr(LLMAdapter, "_call_with_retry", call)
     body = {"topic": "greetings", "count": 2} if endpoint == "/generate" else {"word": "hello"}
     response = await client.post(f"/api/flashcards{endpoint}", headers=test_user[1], json=body)
     assert call.await_count == 2
@@ -121,7 +121,7 @@ async def test_lookup_validates_cleaned_word_inside_model_retry(
     call = AsyncMock(
         side_effect=[invalid, json.dumps(content(word="  book (noun)  ")) if recovers else invalid]
     )
-    monkeypatch.setattr(llm_adapter, "_call_with_retry", call)
+    monkeypatch.setattr(LLMAdapter, "_call_with_retry", call)
     response = await client.post(
         "/api/flashcards/from-word", headers=test_user[1], json={"word": "book"}
     )
@@ -154,7 +154,7 @@ async def test_generation_keeps_empty_and_duplicate_counters(
             }
         )
     )
-    monkeypatch.setattr(llm_adapter, "_call_with_retry", call)
+    monkeypatch.setattr(LLMAdapter, "_call_with_retry", call)
     response = await client.post(
         "/api/flashcards/generate", headers=test_user[1], json={"topic": "objects", "count": 3}
     )

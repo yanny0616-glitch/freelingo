@@ -37,8 +37,20 @@ STT configuration:
 `OPENAI_API_KEY` is required at startup when either selected provider is OpenAI. Provider values are
 not enum-validated: values other than `openai` currently select the local adapter.
 
-The public configuration exposes the selected TTS provider and default OpenAI TTS voice. It does
-not expose provider credentials or the selected STT provider.
+Administrators can replace either environment service from the AI channels page
+(`ai_speech_settings`). A selected, enabled `openai` or `openai_compatible` channel is served through
+the OpenAI adapters with the channel base URL and key, the configured model (`tts-1` or `whisper-1`
+when empty), voice (`nova` when empty), and speed. Disabling, deleting, or clearing the channel
+restores the environment service. Routers always use the active `app.state` service, so voice
+validation and forwarding depend on that service rather than `TTS_PROVIDER`:
+
+- `local` — Kokoro; client voices are ignored.
+- `openai` — learners may choose the standard OpenAI voices.
+- `custom` — an OpenAI-compatible channel with `tts_openai_voices=false`; client voices are ignored
+  and the administrator voice is used.
+
+The public configuration exposes the active TTS provider value and its default voice. It does not
+expose provider credentials or the selected STT provider.
 
 ## TTS adapters
 

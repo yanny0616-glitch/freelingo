@@ -110,6 +110,8 @@ and honor `Retry-After` when present; generation itself remains limited to `5/mi
 - `PATCH /api/reviews/me`: `10/hour`.
 - `DELETE /api/reviews/me`: `10/hour`.
 - `POST /api/admin/dashboard-banner/translate`: `10/minute`.
+- `POST /api/admin/ai/channels`, `PUT /api/admin/ai/channels/{channel_id}`, `DELETE /api/admin/ai/channels/{channel_id}`, and `PUT /api/admin/ai/speech`: `30/minute` each.
+- `POST /api/admin/ai/test` and `POST /api/admin/ai/models`: `10/minute` each.
 - `POST /api/billing/webhook`: `200/minute`.
 
 ## WebSocket

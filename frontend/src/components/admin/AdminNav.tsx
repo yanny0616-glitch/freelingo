@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
+  Bot,
   LayoutDashboard,
   MessageSquareText,
   Settings,
@@ -16,6 +17,7 @@ const items = [
   { href: '/admin/users', key: 'users', icon: Users },
   { href: '/admin/feedback', key: 'feedback', icon: MessageSquareText },
   { href: '/admin/reviews', key: 'reviews', icon: Star },
+  { href: '/admin/ai', key: 'ai', icon: Bot },
   { href: '/admin/system', key: 'system', icon: Settings },
 ] as const
 

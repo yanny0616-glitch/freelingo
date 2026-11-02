@@ -617,10 +617,28 @@ class LLMToolStream(LLMStream):
                     yield text
 
 
+@dataclass(frozen=True)
+class LLMChannelConfig:
+    """Connection settings for one administrator-managed AI channel."""
+
+    provider: str  # "openai_compatible" | "openai" | "anthropic"
+    model: str
+    api_key: str = ""
+    base_url: str | None = None
+    reasoning_effort: str | None = None
+    max_tokens: int | None = None
+    name: str = ""
+
+
 class LLMAdapter:
-    def __init__(self):
-        self.provider = settings.LLM_PROVIDER
+    def __init__(self, config: LLMChannelConfig | None = None):
+        self._config = config
         self._native_tools_available_logged = False
+        if config is not None:
+            self._init_from_channel(config)
+            return
+        self.provider = settings.LLM_PROVIDER
+        self.name = self.provider
         if self.provider == "ollama":
             self.client = AsyncOpenAI(
                 base_url=f"{settings.OLLAMA_BASE_URL}/v1",
@@ -645,6 +663,35 @@ class LLMAdapter:
             )
             self.client = None
             self.model = settings.ANTHROPIC_MODEL
+
+    def _init_from_channel(self, config: LLMChannelConfig) -> None:
+        self.provider = config.provider
+        self.name = config.name or config.provider
+        self.model = config.model
+        base_url = config.base_url or None
+        if config.provider == "anthropic":
+            self._anthropic = _anthropic.AsyncAnthropic(
+                api_key=config.api_key,
+                base_url=base_url,
+                max_retries=0,
+            )
+            self.client = None
+        else:
+            # Both the official OpenAI Responses API and OpenAI-compatible
+            # Chat Completions gateways use the OpenAI SDK client.
+            self.client = AsyncOpenAI(api_key=config.api_key or "not-needed", base_url=base_url)
+
+    @property
+    def _reasoning_effort(self) -> str:
+        if self._config is not None:
+            return self._config.reasoning_effort or ""
+        return settings.OPENAI_REASONING_EFFORT
+
+    @property
+    def _anthropic_max_tokens(self) -> int:
+        if self._config is not None and self._config.max_tokens:
+            return self._config.max_tokens
+        return settings.ANTHROPIC_MAX_TOKENS
 
     async def _call_with_retry(
         self, fn, *args, tools_requested: bool = False, max_retries: int = MAX_RETRIES, **kwargs
@@ -835,8 +882,8 @@ class LLMAdapter:
         sdk_max_retries: int | None,
     ):
         extra: dict = {}
-        if settings.OPENAI_REASONING_EFFORT:
-            extra["reasoning"] = {"effort": settings.OPENAI_REASONING_EFFORT}
+        if self._reasoning_effort:
+            extra["reasoning"] = {"effort": self._reasoning_effort}
         if tools:
             extra["tools"] = [
                 {
@@ -1048,7 +1095,7 @@ class LLMAdapter:
         kwargs: dict = dict(
             model=self.model,
             messages=user_messages,
-            max_tokens=settings.ANTHROPIC_MAX_TOKENS,
+            max_tokens=self._anthropic_max_tokens,
             stream=stream,
             timeout=request_timeout,
         )
@@ -1095,7 +1142,115 @@ class LLMAdapter:
         return content
 
 
-llm_adapter = LLMAdapter()
+class LLMRouter:
+    """Send LLM calls through the administrator's channels, in priority order.
+
+    When no channel is configured, the environment-configured provider is used,
+    so existing deployments keep working unchanged. A channel that fails with an
+    LLM error is skipped in favour of the next one; the last error is raised.
+    """
+
+    def __init__(self) -> None:
+        self._channels: tuple[LLMAdapter, ...] = ()
+        self._env_adapter: LLMAdapter | None = None
+
+    def set_channels(self, configs: list[LLMChannelConfig]) -> None:
+        self._channels = tuple(LLMAdapter(config) for config in configs)
+
+    @property
+    def uses_channels(self) -> bool:
+        return bool(self._channels)
+
+    def adapters(self) -> tuple[LLMAdapter, ...]:
+        if self._channels:
+            return self._channels
+        if self._env_adapter is None:
+            self._env_adapter = LLMAdapter()
+        return (self._env_adapter,)
+
+    @property
+    def provider(self) -> str:
+        return self.adapters()[0].provider
+
+    @property
+    def model(self) -> str:
+        return self.adapters()[0].model
+
+    async def chat(
+        self,
+        messages: list[dict],
+        stream: bool = False,
+        *,
+        tools: list[LLMTool] | None = None,
+        tool_executor: ToolExecutor | None = None,
+        fallback_messages: list[dict] | None = None,
+    ) -> str | LLMStream:
+        adapters = self.adapters()
+        for index, adapter in enumerate(adapters):
+            try:
+                return await adapter.chat(
+                    messages,
+                    stream,
+                    tools=tools,
+                    tool_executor=tool_executor,
+                    fallback_messages=fallback_messages,
+                )
+            except LLMError as exc:
+                if index == len(adapters) - 1:
+                    raise
+                logger.warning(
+                    "AI channel %s failed; trying the next channel: %s", adapter.name, exc
+                )
+        raise AssertionError("unreachable")
+
+    async def structured_output(
+        self, messages: list[dict], schema: type[BaseModel], *, deadline: float | None = None
+    ) -> BaseModel:
+        adapters = self.adapters()
+        for index, adapter in enumerate(adapters):
+            try:
+                return await adapter.structured_output(messages, schema, deadline=deadline)
+            except LLMError as exc:
+                out_of_time = (
+                    deadline is not None and asyncio.get_running_loop().time() >= deadline
+                )
+                if index == len(adapters) - 1 or out_of_time:
+                    raise
+                logger.warning(
+                    "AI channel %s failed; trying the next channel: %s", adapter.name, exc
+                )
+        raise AssertionError("unreachable")
+
+
+async def probe_channel(config: LLMChannelConfig, *, timeout: float = 30.0) -> str:
+    """Send one tiny request through a channel and return the model's reply."""
+    adapter = LLMAdapter(config)
+    messages = [{"role": "user", "content": "Reply with the single word: OK"}]
+    try:
+        reply = await adapter._do_chat(
+            messages, False, None, request_timeout=timeout, sdk_max_retries=0
+        )
+    except LLMError:
+        raise
+    except Exception as exc:  # SDK errors carry the provider's message
+        raise LLMError(f"{adapter.provider} error: {exc}") from exc
+    return str(reply).strip()
+
+
+async def list_channel_models(config: LLMChannelConfig) -> list[str]:
+    """Return the model ids the channel's provider advertises."""
+    adapter = LLMAdapter(config)
+    try:
+        if adapter.provider == "anthropic":
+            page = await adapter._anthropic.models.list(limit=100, timeout=20.0)
+        else:
+            page = await adapter.client.with_options(max_retries=0).models.list(timeout=20.0)
+    except Exception as exc:
+        raise LLMError(f"{adapter.provider} error: {exc}") from exc
+    return sorted({item.id for item in page.data if getattr(item, "id", None)})
+
+
+llm_adapter = LLMRouter()
 
 
 def parse_llm_json(raw: str) -> dict:
