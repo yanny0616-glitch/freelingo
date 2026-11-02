@@ -1309,7 +1309,7 @@
       "fieldModel": "文字模型",
       "modelHint": "如果这个渠道只用于语音，可以留空。",
       "fetchModels": "获取模型列表",
-      "modelsLoaded": "找到 {count} 个模型",
+      "modelsLoaded": "找到 {count, plural, other {# 个模型}}",
       "fieldReasoning": "推理强度",
       "reasoningDefault": "模型默认",
       "fieldMaxTokens": "最大输出 Token",
