@@ -34,6 +34,7 @@ SUPPORTED_LANGUAGES = {
     "da",
     "fi",
     "hr",
+    "zh",
 }
 
 SUPPORTED_TARGET_LANGUAGES: set[str] = {

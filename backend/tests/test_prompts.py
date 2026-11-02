@@ -145,6 +145,7 @@ def test_polish_reading_cultural_topics_do_not_fall_back_to_english(language: st
 def test_native_language_names_are_prompt_ready() -> None:
     assert get_native_language_name("es") == "Spanish"
     assert get_native_language_name("fr") == "French"
+    assert get_native_language_name("zh") == "Simplified Chinese"
     assert get_native_language_name("unknown") == "unknown"
 
 

@@ -602,6 +602,15 @@ def test_voice_session_title_unknown_language() -> None:
     assert title.startswith("Voice session — ")
 
 
+def test_voice_session_title_chinese() -> None:
+    """Chinese uses '语音会话' and a 'YYYY年M月D日' date."""
+    import re
+
+    from app.services.language_helpers import voice_session_title
+
+    assert re.fullmatch(r"语音会话 — \d{4}年\d{1,2}月\d{1,2}日", voice_session_title("zh"))
+
+
 def test_voice_session_title_spanish() -> None:
     """Spanish uses 'Sesión de voz' label and 'D de mes de YYYY' format."""
     from app.services.language_helpers import voice_session_title

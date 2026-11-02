@@ -148,6 +148,7 @@ _VOICE_SESSION_TITLES: dict[str, str] = {
     "da": "Stemmesamtale",
     "fi": "Äänikeskustelu",
     "hr": "Glasovni razgovor",
+    "zh": "语音会话",
 }
 
 _NATIVE_LANGUAGE_NAMES: dict[str, str] = {
@@ -166,6 +167,7 @@ _NATIVE_LANGUAGE_NAMES: dict[str, str] = {
     "da": "Danish",
     "fi": "Finnish",
     "hr": "Croatian",
+    "zh": "Simplified Chinese",
 }
 
 _LESSON_PRACTICE_TITLES: dict[str, str] = {
@@ -184,6 +186,7 @@ _LESSON_PRACTICE_TITLES: dict[str, str] = {
     "da": "Øvelse",
     "fi": "Harjoitus",
     "hr": "Vježba",
+    "zh": "练习",
 }
 
 
@@ -464,6 +467,8 @@ def voice_session_title(native_language: str) -> str:
     """
     label = _VOICE_SESSION_TITLES.get(native_language, "Voice session")
     now = datetime.now(UTC).replace(tzinfo=None)
+    if native_language == "zh":
+        return f"{label} — {now.year}年{now.month}月{now.day}日"
     months = _MONTH_NAMES.get(native_language)
     if months:
         month_name = months[now.month - 1]
