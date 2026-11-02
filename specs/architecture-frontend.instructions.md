@@ -177,10 +177,10 @@ the rendering configuration described under Streaming and media, independently o
 
 ## Page loading
 
-`components/ui/page-loading.tsx` provides general page loading with `LinguAvatar` playing `reposo`
+`components/ui/page-loading.tsx` provides general page loading with static Lingu artwork
 at 75 × 75 px on mobile and 150 × 150 px on desktop, centered localized text, and optional subtext
-in Geist Sans. Text is visible independently of avatar readiness. A spinner is shown while the 3D
-module/model loads; static artwork is reserved for reduced motion or loading failures. Inline mode
+in Geist Sans. Default `reposo` loading does not initialize WebGL or fetch the 3D model. Explicit
+feedback animations still use `LinguAvatar` with reduced-motion and loading-failure fallbacks. Inline mode
 stays compact, with a decorative spinner disabled by `showDot={false}`; its rotation respects reduced
 motion. Both modes hold one global loading-counter slot while mounted and release it on unmount.
 General and generation screens reuse `PageLoadingPresentation`: the avatar/title block is centered
