@@ -5,6 +5,13 @@ applyTo: "backend/app/core/**, backend/app/routers/{auth,assessment,chat,config,
 
 # Platform Core
 
+## Chinese interface locale
+
+The Chinese edition accepts `zh` in `ui_locale` profile updates. This changes menus and messages;
+it does not change `native_language`, `target_language`, active study plans, or stored learning content.
+Existing language and authorization validation remains in effect. The interface can be switched via
+`/login?lang=zh` or saved from profile settings. The frontend fallback locale is `zh`.
+
 ## Purpose and boundaries
 
 FreeLingo coordinates account creation, onboarding, CEFR placement, study-plan entry, learning

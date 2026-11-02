@@ -1,5 +1,20 @@
 # FreeLingo
 
+## Simplified Chinese edition
+
+This fork adds a complete Simplified Chinese interface catalog (`messages/zh.json`).
+Open `/login?lang=zh` to switch an existing browser session, or choose 简体中文 in
+Settings → Profile → Interface Language and save. The interface locale does not
+change the study language, learning materials, account data, or configured AI providers.
+Chinese browser preferences are detected automatically; unrecognized locales default to Chinese.
+
+The Chinese edition images are built on GitHub Actions by `chinese-edition.yml`,
+for Linux amd64, and published under this repository owner's GHCR namespace.
+Deploy the backend and frontend images with the same `zh-<commit SHA>` tag.
+Keep production credentials and deployment environment files outside the repository.
+Upstream updates should be merged into the maintained branch, then rebuilt through Actions.
+
+
 ![Hosted](https://img.shields.io/badge/hosted%20service-available-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-AGPL%20v3-blue?style=flat-square)
 ![Next.js](https://img.shields.io/badge/next.js-16-black?style=flat-square)

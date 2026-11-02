@@ -1472,7 +1472,8 @@
     "lessonsLabel": "Dersler",
     "flashcardsLabel": "Bilgi Kartları",
     "viewDetails": "Ayrıntıları görüntüle",
-    "supportedLanguages": "Kullanılabilir diller"
+    "supportedLanguages": "Kullanılabilir diller",
+    "zh": "简体中文"
   },
   "targetLanguages": {
     "en-US": "Amerikan İngilizcesi",

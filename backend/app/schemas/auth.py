@@ -61,6 +61,7 @@ def get_available_languages() -> list[str]:
 
 
 SUPPORTED_UI_LOCALES: set[str] = {
+    "zh",
     "en",
     "es",
     "fr",

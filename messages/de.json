@@ -1472,7 +1472,8 @@
     "lessonsLabel": "Lektionen",
     "flashcardsLabel": "Flashcards",
     "viewDetails": "Details anzeigen",
-    "supportedLanguages": "Verfügbare Sprachen"
+    "supportedLanguages": "Verfügbare Sprachen",
+    "zh": "简体中文"
   },
   "targetLanguages": {
     "en-US": "Amerikanisches Englisch",

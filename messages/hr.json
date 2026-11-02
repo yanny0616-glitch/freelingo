@@ -1472,7 +1472,8 @@
     "lessonsLabel": "Lekcije",
     "flashcardsLabel": "Kartice",
     "viewDetails": "Pogledaj detalje",
-    "supportedLanguages": "Dostupni jezici"
+    "supportedLanguages": "Dostupni jezici",
+    "zh": "简体中文"
   },
   "targetLanguages": {
     "en-US": "Američki engleski",

@@ -1472,7 +1472,8 @@
     "lessonsLabel": "Lektioner",
     "flashcardsLabel": "Flashcards",
     "viewDetails": "Se detaljer",
-    "supportedLanguages": "Tilgængelige sprog"
+    "supportedLanguages": "Tilgængelige sprog",
+    "zh": "简体中文"
   },
   "targetLanguages": {
     "en-US": "Amerikansk engelsk",

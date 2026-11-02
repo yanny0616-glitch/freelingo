@@ -31,6 +31,15 @@ frontend/src/
 
 UI translation catalogs live in the repository-root `messages/` directory.
 
+The self-hosted Chinese edition includes the `zh` interface locale and a complete `messages/zh.json`
+catalog. Middleware respects a supported `?lang=` query first, then the locale cookie and weighted
+browser preferences, and falls back to `zh`. It persists the resolved locale whenever the cookie
+differs. The explicit link `/login?lang=zh` switches previously English browser sessions without
+clearing authentication. Profile settings persist the user's selected UI locale independently of
+the study language. Chinese catalog validation checks every key, ICU argument and rich-text tag;
+learning-language greeting examples and the FreeLingo brand are preserved.
+
+
 `next.config.ts` selects `tsconfig.build.json` for Next.js. It inherits the strict compiler settings
 from `tsconfig.json` and excludes `tests/`. The repository-wide frontend typecheck uses `tsconfig.json`
 to check application and test code together.

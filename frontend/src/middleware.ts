@@ -28,6 +28,12 @@ const PROTECTED_ROUTES = [
 ]
 
 function detectLocale(req: NextRequest): Locale {
+  // Explicit links let existing installations switch locale without clearing cookies.
+  const requested = req.nextUrl.searchParams.get('lang')
+  if (requested && (SUPPORTED_LOCALES as readonly string[]).includes(requested)) {
+    return requested as Locale
+  }
+
   // 1. Cookie already set — respect user choice
   const cookie = req.cookies.get('NEXT_LOCALE')?.value
   if (cookie && (SUPPORTED_LOCALES as readonly string[]).includes(cookie)) {
@@ -54,8 +60,8 @@ function detectLocale(req: NextRequest): Locale {
     }
   }
 
-  // 3. Default to English
-  return 'en'
+  // Default to Simplified Chinese for this self-hosted edition.
+  return 'zh'
 }
 
 export function middleware(req: NextRequest) {
@@ -71,7 +77,7 @@ export function middleware(req: NextRequest) {
 
   if (!hasRefreshToken && isProtected) {
     const response = NextResponse.redirect(new URL('/login', req.url))
-    if (!req.cookies.has('NEXT_LOCALE')) {
+    if (req.cookies.get('NEXT_LOCALE')?.value !== locale) {
       response.cookies.set('NEXT_LOCALE', locale, {
         path: '/',
         sameSite: 'lax',
@@ -90,7 +96,7 @@ export function middleware(req: NextRequest) {
   const response = NextResponse.next({ request: { headers: requestHeaders } })
 
   // Persist as cookie for subsequent requests
-  if (!req.cookies.has('NEXT_LOCALE')) {
+  if (req.cookies.get('NEXT_LOCALE')?.value !== locale) {
     response.cookies.set('NEXT_LOCALE', locale, {
       path: '/',
       sameSite: 'lax',

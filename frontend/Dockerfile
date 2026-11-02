@@ -14,7 +14,7 @@ COPY messages/ ./messages/
 # (deps stage generates them but COPY frontend/ . above overwrites public/vad from source)
 RUN node scripts/copy-vad-models.js
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN node scripts/check-zh.mjs && npm run build
 
 FROM node:26.13.0-alpine AS runner
 WORKDIR /app

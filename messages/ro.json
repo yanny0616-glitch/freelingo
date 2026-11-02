@@ -1472,7 +1472,8 @@
     "lessonsLabel": "Lecții",
     "flashcardsLabel": "Flashcard-uri",
     "viewDetails": "Vezi detalii",
-    "supportedLanguages": "Limbi disponibile"
+    "supportedLanguages": "Limbi disponibile",
+    "zh": "简体中文"
   },
   "targetLanguages": {
     "en-US": "Engleză americană",

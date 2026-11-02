@@ -1472,7 +1472,8 @@
     "lessonsLabel": "Oppitunnit",
     "flashcardsLabel": "Muistikortit",
     "viewDetails": "Näytä tiedot",
-    "supportedLanguages": "Saatavilla olevat kielet"
+    "supportedLanguages": "Saatavilla olevat kielet",
+    "zh": "简体中文"
   },
   "targetLanguages": {
     "en-US": "Amerikanenglanti",
