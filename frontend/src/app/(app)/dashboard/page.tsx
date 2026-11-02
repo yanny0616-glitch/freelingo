@@ -199,6 +199,7 @@ export default function DashboardPage() {
           setPlanLoadError(true)
         }
       } else if (current) {
+        setTodayLessons([])
         setPlanLoadError(true)
       } else {
         setCefrLevel(null)
@@ -227,6 +228,9 @@ export default function DashboardPage() {
     if (!activeLanguage?.code) return
     setLoading(true)
     setLoadError(false)
+    setCompletion(null)
+    setPendingCount(0)
+    setTodayLessons([])
     loadData()
     return () => {
       loadSequence.current += 1
@@ -618,7 +622,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {todayLessons.length > 0 ? (
+            {planLoading ? (
+              <PageLoading label={t('loadingProgress')} fullScreen={false} />
+            ) : planLoadError ? (
+              <p className="text-fl-muted-2 text-sm" role="status">
+                {tError('body')}
+              </p>
+            ) : todayLessons.length > 0 ? (
               <div className="space-y-3">
                 <div className="mb-4">
                   <p className="text-fl-muted-1 mb-2 text-sm">
