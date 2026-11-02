@@ -1336,7 +1336,7 @@
       "keyUnreadable": "Key unreadable",
       "noKey": "No key",
       "fieldModel": "Text model",
-      "modelHint": "Leave blank if this channel is only used for speech.",
+      "modelHint": "Used only for text features such as chat and lessons. Leave blank if this channel is only for speech; speech models and voices are set in the Speech section below.",
       "fetchModels": "Fetch models",
       "modelsLoaded": "{count, plural, one {# model} other {# models}} found",
       "fieldReasoning": "Reasoning effort",
@@ -1377,7 +1377,8 @@
       "saveSpeech": "Save speech settings",
       "chatTitle": "Tutor chat",
       "learnerModelSwitch": "Let learners choose the model",
-      "learnerModelSwitchHint": "Administrators can always pick a channel for each conversation. When this is on, learners can too; otherwise their chats follow the priority order above."
+      "learnerModelSwitchHint": "Administrators can always pick a channel for each conversation. When this is on, learners can too; otherwise their chats follow the priority order above.",
+      "speechDefaultsHint": "Choosing a SiliconFlow or OpenAI channel fills in recommended models and voices."
     }
   },
   "faq": {

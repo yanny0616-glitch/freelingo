@@ -41,7 +41,10 @@ Administrators can replace either environment service from the AI channels page
 (`ai_settings`). A selected, enabled `openai` or `openai_compatible` channel is served through
 the OpenAI adapters with the channel base URL and key, the configured model (`tts-1` or `whisper-1`
 when empty), voice (`nova` when empty), and speed. Disabling, deleting, or clearing the channel
-restores the environment service. Routers always use the active `app.state` service, so voice
+restores the environment service. On the administrator page, choosing a SiliconFlow channel fills
+blank (or other-service default) fields with `FunAudioLLM/CosyVoice2-0.5B`, voice
+`FunAudioLLM/CosyVoice2-0.5B:anna` with learner voices off, and `FunAudioLLM/SenseVoiceSmall`; an
+OpenAI channel fills `tts-1`, `nova`, and `whisper-1`. Custom values are kept. Routers always use the active `app.state` service, so voice
 validation and forwarding depend on that service rather than `TTS_PROVIDER`:
 
 - `local` — Kokoro; client voices are ignored.

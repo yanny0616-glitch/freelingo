@@ -1336,7 +1336,7 @@
       "keyUnreadable": "密钥无法读取",
       "noKey": "未填密钥",
       "fieldModel": "文字模型",
-      "modelHint": "如果这个渠道只用于语音，可以留空。",
+      "modelHint": "只用于聊天、课程等文字功能。如果这个渠道只用于语音，留空即可；语音模型和音色在本页下方的“语音”区域设置。",
       "fetchModels": "获取模型列表",
       "modelsLoaded": "找到 {count, plural, other {# 个模型}}",
       "fieldReasoning": "推理强度",
@@ -1377,7 +1377,8 @@
       "saveSpeech": "保存语音设置",
       "chatTitle": "导师聊天",
       "learnerModelSwitch": "允许学员选择模型",
-      "learnerModelSwitchHint": "管理员始终可以为每个对话选择渠道。开启后学员也可以选择；关闭时学员的对话按上面的优先级使用渠道。"
+      "learnerModelSwitchHint": "管理员始终可以为每个对话选择渠道。开启后学员也可以选择；关闭时学员的对话按上面的优先级使用渠道。",
+      "speechDefaultsHint": "选择硅基流动或 OpenAI 渠道时，会自动填入推荐的模型和音色。"
     }
   },
   "faq": {

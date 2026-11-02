@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - Per-conversation model choice from the active AI channels; administrators can always choose, and learners can when enabled on the AI channels page.
 
 - Regenerate lesson: lessons with no answered exercises can be regenerated from the lesson page, for example after changing the native language.
+- Choosing a SiliconFlow or OpenAI channel for speech on the AI channels page fills in recommended speech models and voices.
 - Simplified Chinese (`zh`) can be chosen as the native language at registration, in Settings, and in user administration, so lesson explanations, translations, hints and answer feedback are written in Chinese.
 
 ### Fixed

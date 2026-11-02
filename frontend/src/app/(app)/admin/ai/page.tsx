@@ -116,6 +116,49 @@ const PRESETS: { key: string; name: string; provider: Provider; url: string }[] 
   },
 ]
 
+interface SpeechDefaults {
+  tts_model: string
+  tts_voice: string
+  tts_openai_voices: boolean
+  stt_model: string
+}
+
+// Recommended speech models for known services, filled in when picked below.
+const SPEECH_DEFAULTS: Record<'openai' | 'siliconflow', SpeechDefaults> = {
+  openai: {
+    tts_model: 'tts-1',
+    tts_voice: 'nova',
+    tts_openai_voices: true,
+    stt_model: 'whisper-1',
+  },
+  siliconflow: {
+    tts_model: 'FunAudioLLM/CosyVoice2-0.5B',
+    tts_voice: 'FunAudioLLM/CosyVoice2-0.5B:anna',
+    tts_openai_voices: false,
+    stt_model: 'FunAudioLLM/SenseVoiceSmall',
+  },
+}
+
+function speechDefaultsFor(channel: AIChannel | undefined) {
+  if (!channel) return null
+  if (channel.base_url?.includes('siliconflow')) return SPEECH_DEFAULTS.siliconflow
+  if (
+    channel.provider === 'openai' ||
+    channel.base_url?.includes('api.openai.com')
+  ) {
+    return SPEECH_DEFAULTS.openai
+  }
+  return null
+}
+
+// Replace a blank value or another service's default, never a custom one.
+function isReplaceable(value: string | null, key: keyof SpeechDefaults) {
+  return (
+    !value ||
+    Object.values(SPEECH_DEFAULTS).some((item) => item[key] === value)
+  )
+}
+
 const EMPTY_FORM: ChannelForm = {
   id: null,
   name: '',
@@ -1007,6 +1050,9 @@ export default function AdminAIPage() {
                     <p className="text-fl-muted-2 mt-1 font-mono text-xs">
                       {t('aiChannels.speechDescription')}
                     </p>
+                    <p className="text-fl-muted-3 mt-1 font-mono text-xs">
+                      {t('aiChannels.speechDefaultsHint')}
+                    </p>
                   </div>
                 </div>
                 {speechError && (
@@ -1030,14 +1076,23 @@ export default function AdminAIPage() {
                       </span>
                       <select
                         value={speech.tts_channel_id ?? ''}
-                        onChange={(event) =>
-                          setSpeech({
-                            ...speech,
-                            tts_channel_id: event.target.value
-                              ? Number(event.target.value)
-                              : null,
-                          })
-                        }
+                        onChange={(event) => {
+                          const id = event.target.value
+                            ? Number(event.target.value)
+                            : null
+                          const defaults = speechDefaultsFor(
+                            speechChannels.find((item) => item.id === id)
+                          )
+                          const next = { ...speech, tts_channel_id: id }
+                          if (defaults && isReplaceable(speech.tts_model, 'tts_model')) {
+                            next.tts_model = defaults.tts_model
+                          }
+                          if (defaults && isReplaceable(speech.tts_voice, 'tts_voice')) {
+                            next.tts_voice = defaults.tts_voice
+                            next.tts_openai_voices = defaults.tts_openai_voices
+                          }
+                          setSpeech(next)
+                        }}
                         className={inputClass}
                       >
                         <option value="">
@@ -1128,14 +1183,19 @@ export default function AdminAIPage() {
                       </span>
                       <select
                         value={speech.stt_channel_id ?? ''}
-                        onChange={(event) =>
-                          setSpeech({
-                            ...speech,
-                            stt_channel_id: event.target.value
-                              ? Number(event.target.value)
-                              : null,
-                          })
-                        }
+                        onChange={(event) => {
+                          const id = event.target.value
+                            ? Number(event.target.value)
+                            : null
+                          const defaults = speechDefaultsFor(
+                            speechChannels.find((item) => item.id === id)
+                          )
+                          const next = { ...speech, stt_channel_id: id }
+                          if (defaults && isReplaceable(speech.stt_model, 'stt_model')) {
+                            next.stt_model = defaults.stt_model
+                          }
+                          setSpeech(next)
+                        }}
                         className={inputClass}
                       >
                         <option value="">
