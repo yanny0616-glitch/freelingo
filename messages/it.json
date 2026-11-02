@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# giorno di prova gratuita} other {# giorni di prova gratuita}}",
     "freemiumTrialDesc": "Goditi accesso illimitato a chat, voce, listening e reading. Prova tutto Premium gratuitamente.",
     "announcementDismiss": "Chiudi annuncio",
-    "announcementDismissError": "Impossibile chiudere l'annuncio. Riprova."
+    "announcementDismissError": "Impossibile chiudere l'annuncio. Riprova.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Valutazione",

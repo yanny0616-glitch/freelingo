@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# dag gratis proefperiode} other {# dagen gratis proefperiode}}",
     "freemiumTrialDesc": "Geniet van onbeperkte toegang tot chat, spraak, listening en reading. Probeer alles Premium gratis.",
     "announcementDismiss": "Aankondiging sluiten",
-    "announcementDismissError": "De aankondiging kon niet worden gesloten. Probeer opnieuw."
+    "announcementDismissError": "De aankondiging kon niet worden gesloten. Probeer opnieuw.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Beoordeling",

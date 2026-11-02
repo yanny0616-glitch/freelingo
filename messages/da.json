@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# dag med gratis prøveperiode} other {# dage med gratis prøveperiode}}",
     "freemiumTrialDesc": "Få ubegrænset adgang til chat, stemme, lytning og læsning. Prøv alle Premium-funktioner gratis.",
     "announcementDismiss": "Luk meddelelsen",
-    "announcementDismissError": "Meddelelsen kunne ikke lukkes. Prøv igen."
+    "announcementDismissError": "Meddelelsen kunne ikke lukkes. Prøv igen.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Niveauvurdering",

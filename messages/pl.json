@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# dzień bezpłatnego okresu próbnego} other {# dni bezpłatnego okresu próbnego}}",
     "freemiumTrialDesc": "Ciesz się nieograniczonym dostępem do czatu, głosu, listeningu i readingu. Wypróbuj wszystko Premium za darmo.",
     "announcementDismiss": "Zamknij ogłoszenie",
-    "announcementDismissError": "Nie udało się zamknąć ogłoszenia. Spróbuj ponownie."
+    "announcementDismissError": "Nie udało się zamknąć ogłoszenia. Spróbuj ponownie.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Ocena poziomu",

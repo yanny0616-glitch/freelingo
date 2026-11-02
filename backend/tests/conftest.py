@@ -106,6 +106,19 @@ async def client(db_session, mock_redis):
 
     app.dependency_overrides[get_db] = override_get_db
 
+    # Background generation jobs share the test session.
+    from contextlib import asynccontextmanager
+
+    from app.core.database import get_session_factory
+    from app.services import generation_jobs
+
+    @asynccontextmanager
+    async def shared_session():
+        yield db_session
+
+    app.dependency_overrides[get_session_factory] = lambda: shared_session
+    generation_jobs.clear()
+
     # Override Redis in auth, admin and assessment routers
     from app.routers.admin import get_redis as admin_get_redis
     from app.routers.assessment import get_redis as assessment_get_redis

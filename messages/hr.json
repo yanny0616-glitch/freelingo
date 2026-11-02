@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# dan besplatnog probnog razdoblja} few {# dana besplatnog probnog razdoblja} other {# dana besplatnog probnog razdoblja}}",
     "freemiumTrialDesc": "Uživaj u neograničenom pristupu chatu, glasu, slušanju i čitanju. Isprobaj sve Premium značajke besplatno.",
     "announcementDismiss": "Zatvori obavijest",
-    "announcementDismissError": "Obavijest nije bilo moguće zatvoriti. Pokušaj ponovno."
+    "announcementDismissError": "Obavijest nije bilo moguće zatvoriti. Pokušaj ponovno.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Procjena razine",

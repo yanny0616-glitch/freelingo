@@ -18,7 +18,13 @@ The frontend never calls an external provider directly.
 The shared `llm_adapter` is an `LLMRouter`. When administrators have enabled AI channels with a text
 model (`ai_channels`), it holds one `LLMAdapter` per channel in descending priority. `chat` and
 `structured_output` try each channel in order and move to the next one after any `LLMError`; the last
-channel's error is raised. Callers may pass `preferred_channel_id` to try one active channel first,
+channel's error is raised. Long lesson generations run through `generation_jobs`, a per-process registry of asyncio tasks keyed by
+the work they do. Requests wait briefly (`WAIT_SECONDS`, 20 s) and otherwise report that work continues,
+so they stay below proxy time limits; finished jobs are kept for 10 minutes so clients can read their
+outcome. With several API workers, each keeps its own registry and duplicate inserts are resolved by
+the lesson uniqueness constraint.
+
+Callers may pass `preferred_channel_id` to try one active channel first,
 followed by the others in priority order; an inactive preferred channel is ignored. Structured generation does not fail over once its deadline has passed,
 and a stream does not fail over after it has been returned. Without usable channels, the router uses
 a single adapter built from the environment variables below, so environment-only deployments behave

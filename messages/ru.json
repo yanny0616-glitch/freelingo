@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# день пробного периода} few {# дня пробного периода} many {# дней пробного периода} other {# дня пробного периода}}",
     "freemiumTrialDesc": "Наслаждайтесь неограниченным доступом к чату, голосу, listening и reading. Попробуйте всё Premium бесплатно.",
     "announcementDismiss": "Закрыть объявление",
-    "announcementDismissError": "Не удалось закрыть объявление. Попробуйте снова."
+    "announcementDismissError": "Не удалось закрыть объявление. Попробуйте снова.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Оценка",

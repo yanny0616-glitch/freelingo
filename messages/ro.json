@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# zi de test gratuit} other {# zile de test gratuit}}",
     "freemiumTrialDesc": "Bucură-te de acces nelimitat la chat, voce, listening și reading. Încearcă tot Premium gratuit.",
     "announcementDismiss": "Închide anunțul",
-    "announcementDismissError": "Anunțul nu a putut fi închis. Încearcă din nou."
+    "announcementDismissError": "Anunțul nu a putut fi închis. Încearcă din nou.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Evaluare",

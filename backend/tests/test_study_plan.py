@@ -627,3 +627,197 @@ async def test_today_passes_previous_unit_lessons_to_generator(client, test_user
     assert [item["title"] for item in previous] == ["Unit Lesson One"]
     assert previous[0]["lesson_type"] == "grammar"
     assert previous[0]["content"]["explanation"]["examples"][0]["sentence"] == "We booked a hotel."
+
+
+@pytest.mark.asyncio
+async def test_today_survives_lesson_created_by_concurrent_request(
+    client, test_user, db_session
+):
+    """A duplicate insert from a parallel request reuses that lesson instead of failing."""
+    from app.models.lesson import Lesson
+
+    user, headers = test_user
+
+    await deactivate_active_plans(db_session, user.id)
+    plan = await make_study_plan(
+        db_session,
+        user_id=user.id,
+        cefr_level="A2",
+        goals=["grammar"],
+        duration_weeks=1,
+        days_per_week=1,
+        current_unit="a2_unit_1",
+        generated_plan={
+            "title": "Test Plan",
+            "cefr_level": "A2",
+            "duration_weeks": 1,
+            "days_per_week": 1,
+            "ends_with_test": False,
+            "weekly_plan": [
+                {
+                    "week": 1,
+                    "theme": "basics",
+                    "days": [
+                        {
+                            "day": 1,
+                            "lesson_type": "grammar",
+                            "title": title,
+                            "objectives": [],
+                            "estimated_minutes": 20,
+                            "unit_id": "a2_unit_1",
+                            "grammar_points": [],
+                            "vocabulary_set_ids": [],
+                        }
+                        for title in ("Parallel Lesson", "Second Lesson")
+                    ],
+                }
+            ],
+        },
+        is_active=True,
+        progress_day=0,
+    )
+    plan_id = plan.id
+
+    generated = LessonContent(
+        lesson_type="grammar",
+        title="Generated",
+        cefr_level="A2",
+        unit_id="a2_unit_1",
+        explanation={"text": "Explanation", "key_points": [], "examples": []},
+        exercises=[
+            ExerciseContent(
+                type="multiple_choice",
+                question="Question?",
+                options=["A", "B"],
+                correct="A",
+                explanation="Because.",
+            )
+        ],
+        vocabulary=[],
+        grammar_refs=[],
+    )
+
+    async def generate(**kwargs):
+        if kwargs["topic"] == "Parallel Lesson":
+            # Another request finished generating the same lesson first.
+            db_session.add(
+                Lesson(
+                    study_plan_id=plan_id,
+                    title="Parallel Lesson",
+                    lesson_type="grammar",
+                    cefr_level="A2",
+                    week_number=1,
+                    day_number=1,
+                    unit_id="a2_unit_1",
+                    content={"title": "From the other request"},
+                )
+            )
+            await db_session.commit()
+        return generated
+
+    with patch("app.routers.study_plan.generate_lesson", new=generate):
+        response = await client.get("/api/study-plan/today", headers=headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["plan_id"] == plan_id
+    assert [item["title"] for item in data["lessons"]] == ["Parallel Lesson", "Second Lesson"]
+    assert all(item["id"] for item in data["lessons"])
+
+
+@pytest.mark.asyncio
+async def test_today_reports_generating_and_finishes_in_background(
+    client, test_user, db_session, monkeypatch
+):
+    """Slow generation returns `generating` at once and is stored when it finishes."""
+    import asyncio
+
+    from app.services import generation_jobs
+
+    user, headers = test_user
+    monkeypatch.setattr(generation_jobs, "WAIT_SECONDS", 0.0)
+
+    await deactivate_active_plans(db_session, user.id)
+    plan = await make_study_plan(
+        db_session,
+        user_id=user.id,
+        cefr_level="A2",
+        goals=["grammar"],
+        duration_weeks=1,
+        days_per_week=1,
+        current_unit="a2_unit_1",
+        generated_plan={
+            "title": "Test Plan",
+            "cefr_level": "A2",
+            "duration_weeks": 1,
+            "days_per_week": 1,
+            "ends_with_test": False,
+            "weekly_plan": [
+                {
+                    "week": 1,
+                    "theme": "basics",
+                    "days": [
+                        {
+                            "day": 1,
+                            "lesson_type": "grammar",
+                            "title": "Slow Lesson",
+                            "objectives": [],
+                            "estimated_minutes": 20,
+                            "unit_id": "a2_unit_1",
+                            "grammar_points": [],
+                            "vocabulary_set_ids": [],
+                        }
+                    ],
+                }
+            ],
+        },
+        is_active=True,
+        progress_day=0,
+    )
+    plan_id = plan.id
+
+    release = asyncio.Event()
+    calls = 0
+
+    async def slow_generate(**_kwargs):
+        nonlocal calls
+        calls += 1
+        await release.wait()
+        return LessonContent(
+            lesson_type="grammar",
+            title="Slow Lesson",
+            cefr_level="A2",
+            unit_id="a2_unit_1",
+            explanation={"text": "Explanation", "key_points": [], "examples": []},
+            exercises=[
+                ExerciseContent(
+                    type="multiple_choice",
+                    question="Question?",
+                    options=["A", "B"],
+                    correct="A",
+                    explanation="Because.",
+                )
+            ],
+            vocabulary=[],
+            grammar_refs=[],
+        )
+
+    with patch("app.routers.study_plan.generate_lesson", new=slow_generate):
+        first = await client.get("/api/study-plan/today", headers=headers)
+        assert first.status_code == 200
+        assert first.json()["generating"] is True
+        assert first.json()["lessons"] == []
+
+        # Asking again while the job runs does not start another generation.
+        again = await client.get("/api/study-plan/today", headers=headers)
+        assert again.json()["generating"] is True
+
+        release.set()
+        job = generation_jobs.get(("today-lesson", plan_id, 1, 1, "Slow Lesson"))
+        await job
+
+        done = await client.get("/api/study-plan/today", headers=headers)
+
+    assert calls == 1
+    assert done.json()["generating"] is False
+    assert [item["title"] for item in done.json()["lessons"]] == ["Slow Lesson"]

@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# dag gratis provperiod} other {# dagar gratis provperiod}}",
     "freemiumTrialDesc": "Få obegränsad åtkomst till chatt, röst, hörförståelse och läsning. Prova alla Premium-funktioner gratis.",
     "announcementDismiss": "Stäng meddelandet",
-    "announcementDismissError": "Det gick inte att stänga meddelandet. Försök igen."
+    "announcementDismissError": "Det gick inte att stänga meddelandet. Försök igen.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Nivåbedömning",

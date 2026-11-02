@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# Tag kostenlose Testphase} other {# Tage kostenlose Testphase}}",
     "freemiumTrialDesc": "Genieße unbegrenzten Zugang zu Chat, Sprachgesprächen, Listening und Reading. Teste alles Premium kostenlos.",
     "announcementDismiss": "Ankündigung schließen",
-    "announcementDismissError": "Die Ankündigung konnte nicht geschlossen werden. Versuche es erneut."
+    "announcementDismissError": "Die Ankündigung konnte nicht geschlossen werden. Versuche es erneut.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Einstufungstest",

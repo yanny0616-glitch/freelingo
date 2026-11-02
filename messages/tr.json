@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# günlük ücretsiz deneme} other {# günlük ücretsiz deneme}}",
     "freemiumTrialDesc": "Sohbet, ses, dinleme ve okumaya sınırsız erişimin keyfini çıkarın. Premium'un tüm özelliklerini ücretsiz deneyin.",
     "announcementDismiss": "Duyuruyu kapat",
-    "announcementDismissError": "Duyuru kapatılamadı. Tekrar deneyin."
+    "announcementDismissError": "Duyuru kapatılamadı. Tekrar deneyin.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Seviye Tespiti",

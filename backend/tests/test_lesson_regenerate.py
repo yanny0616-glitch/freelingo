@@ -204,3 +204,54 @@ async def test_regenerate_other_users_lesson_is_not_found(client, test_user, db_
         response = await client.post(f"/api/lessons/{lesson.id}/regenerate", headers=headers)
 
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_slow_regeneration_returns_202_then_finishes(
+    client, test_user, db_session, monkeypatch
+):
+    import asyncio
+
+    from app.services import generation_jobs
+
+    user, headers = test_user
+    monkeypatch.setattr(generation_jobs, "WAIT_SECONDS", 0.0)
+    lesson = await _lesson(db_session, user.id)
+    lesson_id = lesson.id
+    release = asyncio.Event()
+    calls = 0
+
+    async def slow_generate(**_kwargs):
+        nonlocal calls
+        calls += 1
+        await release.wait()
+        return NEW_CONTENT
+
+    with patch("app.routers.lessons.generate_lesson", new=slow_generate):
+        started = await client.post(f"/api/lessons/{lesson_id}/regenerate", headers=headers)
+        assert started.status_code == 202
+        assert started.json() == {"status": "generating"}
+
+        # A second click joins the running job instead of starting another.
+        repeat = await client.post(f"/api/lessons/{lesson_id}/regenerate", headers=headers)
+        assert repeat.status_code == 202
+        polled = await client.get(f"/api/lessons/{lesson_id}/regenerate", headers=headers)
+        assert polled.status_code == 202
+
+        release.set()
+        await generation_jobs.get(("regenerate-lesson", lesson_id))
+        finished = await client.get(f"/api/lessons/{lesson_id}/regenerate", headers=headers)
+
+    assert calls == 1
+    assert finished.status_code == 200
+    assert finished.json()["content"]["title"] == "Fresh lesson"
+
+
+@pytest.mark.asyncio
+async def test_regeneration_status_without_job_is_not_found(client, test_user, db_session):
+    user, headers = test_user
+    lesson = await _lesson(db_session, user.id)
+
+    response = await client.get(f"/api/lessons/{lesson.id}/regenerate", headers=headers)
+
+    assert response.status_code == 404

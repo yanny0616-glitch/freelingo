@@ -61,7 +61,7 @@ memories, feedback reads/mutations, and review reads/deletes.
 - `GET /api/study-plan/today`: `20/minute`.
 - `POST /api/lessons/exercises/{exercise_id}/answer`: `20/minute`.
 - `POST /api/lessons/exercises/{exercise_id}/regenerate`: `5/hour`.
-- `POST /api/lessons/{lesson_id}/regenerate`: `10/hour`.
+- `POST /api/lessons/{lesson_id}/regenerate`: `10/hour`; `GET` (status): `60/minute`.
 - Lesson/exercise native explanation or hint generation: `10/minute`.
 - Grammar, Vocabulary, or Phrasebook native-help generation: `10/minute`.
 - `GET /api/phrasebook/audio/{category_id}/{phrase_index}`: `30/minute`.

@@ -118,6 +118,8 @@ class TodayResponse(BaseModel):
     total_days: int = 0
     pending_count: int = 0
     completion: CompletionState
+    # True while a lesson for today is still being generated; ask again shortly.
+    generating: bool = False
 
 
 class PendingLessonResponse(BaseModel):

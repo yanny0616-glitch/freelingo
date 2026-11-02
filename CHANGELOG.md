@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Fixed
 
+- Generating today's lesson no longer times out and loops on the dashboard: generation continues in the background while the dashboard shows progress and checks again, and lesson regeneration works the same way.
+- Two requests generating the same lesson at once no longer fail with a server error.
 - Anthropic models that return thinking blocks no longer break lesson generation and other non-streaming AI features.
 - Chat history now shows the latest 200 messages instead of only the first 30.
 

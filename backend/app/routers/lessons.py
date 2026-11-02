@@ -2,15 +2,17 @@ import copy
 import json
 import re
 from datetime import UTC, datetime
+from functools import partial
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
 from sqlalchemy import delete, exists, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.analytics import enqueue_analytics
 from app.core.app_logger import get_logger
-from app.core.database import get_db
+from app.core.database import get_db, get_session_factory
 from app.core.deps import (
     check_subscription_or_freemium_access,
     get_current_user,
@@ -32,6 +34,7 @@ from app.schemas.lessons import (
     NativeExerciseHintResponse,
     NativeExplanationResponse,
 )
+from app.services import generation_jobs
 from app.services.language_helpers import get_language_name, get_native_language_name
 from app.services.learning_analytics import LearningEvent, record_learning_event
 from app.services.lesson_generator import (
@@ -348,17 +351,96 @@ async def _ensure_lesson_regenerable(lesson: Lesson, db: AsyncSession) -> None:
         )
 
 
-@router.post("/{lesson_id}/regenerate", response_model=LessonResponse)
+async def _regenerate_lesson_job(
+    session_factory: async_sessionmaker,
+    *,
+    lesson_id: int,
+    user_id: int,
+    generate_args: dict,
+) -> None:
+    """Generate new content and swap it in if the lesson is still untouched."""
+    try:
+        content = await generate_lesson(**generate_args)
+    except Exception as exc:
+        logger.exception("Failed to regenerate lesson %s", lesson_id)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not regenerate lesson at this time",
+        ) from exc
+    content_dict = content.model_dump() if hasattr(content, "model_dump") else content
+    exercises_data = content_dict.get("exercises") or []
+    if not exercises_data:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not regenerate lesson at this time",
+        )
+
+    async with session_factory() as db:
+        # The learner may have started answering while the new lesson was generated.
+        lesson = await _get_lesson_for_user(lesson_id, user_id, db, for_update=True)
+        await _ensure_lesson_regenerable(lesson, db)
+        await db.execute(delete(Exercise).where(Exercise.lesson_id == lesson.id))
+        lesson.content = content_dict
+        for item in exercises_data:
+            db.add(
+                Exercise(
+                    lesson_id=lesson.id,
+                    exercise_type=item.get("type", "multiple_choice"),
+                    question=item.get("question", ""),
+                    options=item.get("options"),
+                    correct_answer=item.get("correct", ""),
+                    explanation=item.get("explanation"),
+                )
+            )
+        await db.commit()
+
+
+async def _regeneration_result(job, lesson_id: int, user_id: int, db: AsyncSession):
+    """Return the regenerated lesson, a 202 while running, or the job's error."""
+    if not await generation_jobs.wait(job):
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED, content={"status": "generating"}
+        )
+    if job.cancelled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not regenerate lesson at this time",
+        )
+    error = job.exception()
+    if isinstance(error, HTTPException):
+        raise error
+    if error is not None:
+        logger.error("Failed to regenerate lesson %s", lesson_id, exc_info=error)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not regenerate lesson at this time",
+        )
+    # Read the lesson fresh: the job committed through its own session.
+    await db.rollback()
+    return await _get_lesson_for_user(lesson_id, user_id, db)
+
+
+_REGENERATE_RESPONSES = {202: {"description": "Still generating; poll the GET endpoint."}}
+
+
+@router.post(
+    "/{lesson_id}/regenerate", response_model=LessonResponse, responses=_REGENERATE_RESPONSES
+)
 @limiter.limit("10/hour")
 async def regenerate_lesson(
     request: Request,
     lesson_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    session_factory: async_sessionmaker = Depends(get_session_factory),
 ):
     """Replace an untouched lesson with freshly generated content and exercises."""
     user_id = current_user.id
+    key = ("regenerate-lesson", lesson_id)
     lesson = await _get_lesson_for_user(lesson_id, user_id, db)
+    running = generation_jobs.get(key)
+    if running is not None and not running.done():
+        return await _regeneration_result(running, lesson_id, user_id, db)
     await _ensure_lesson_regenerable(lesson, db)
 
     plan = await db.get(StudyPlan, lesson.study_plan_id)
@@ -386,7 +468,7 @@ async def regenerate_lesson(
             {"title": item.title, "lesson_type": item.lesson_type, "content": item.content}
             for item in siblings.all()
         ]
-    request_args = {
+    generate_args = {
         "cefr_level": lesson.cefr_level,
         "lesson_type": lesson.lesson_type,
         "topic": lesson.title,
@@ -401,42 +483,38 @@ async def regenerate_lesson(
     }
     # Generation can take minutes; don't hold a transaction open meanwhile.
     await db.rollback()
+    job = generation_jobs.start(
+        key,
+        partial(
+            _regenerate_lesson_job,
+            session_factory,
+            lesson_id=lesson_id,
+            user_id=user_id,
+            generate_args=generate_args,
+        ),
+    )
+    return await _regeneration_result(job, lesson_id, user_id, db)
 
-    try:
-        content = await generate_lesson(**request_args)
-        content_dict = content.model_dump() if hasattr(content, "model_dump") else content
-    except Exception:
-        logger.exception("Failed to regenerate lesson %s", lesson_id)
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Could not regenerate lesson at this time",
-        )
-    exercises_data = content_dict.get("exercises") or []
-    if not exercises_data:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Could not regenerate lesson at this time",
-        )
 
-    # The learner may have started answering while the new lesson was generated.
-    lesson = await _get_lesson_for_user(lesson_id, user_id, db, for_update=True)
-    await _ensure_lesson_regenerable(lesson, db)
-    await db.execute(delete(Exercise).where(Exercise.lesson_id == lesson.id))
-    lesson.content = content_dict
-    for item in exercises_data:
-        db.add(
-            Exercise(
-                lesson_id=lesson.id,
-                exercise_type=item.get("type", "multiple_choice"),
-                question=item.get("question", ""),
-                options=item.get("options"),
-                correct_answer=item.get("correct", ""),
-                explanation=item.get("explanation"),
-            )
+@router.get(
+    "/{lesson_id}/regenerate", response_model=LessonResponse, responses=_REGENERATE_RESPONSES
+)
+@limiter.limit("60/minute")
+async def regenerate_lesson_status(
+    request: Request,
+    lesson_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Wait briefly for a running regeneration and report its outcome."""
+    user_id = current_user.id
+    await _get_lesson_for_user(lesson_id, user_id, db)
+    job = generation_jobs.get(("regenerate-lesson", lesson_id))
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No regeneration in progress"
         )
-    await db.commit()
-    await db.refresh(lesson)
-    return lesson
+    return await _regeneration_result(job, lesson_id, user_id, db)
 
 
 @router.post("/{lesson_id}/complete", response_model=LessonResponse)

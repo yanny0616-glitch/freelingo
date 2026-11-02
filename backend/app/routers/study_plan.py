@@ -1,14 +1,16 @@
+import asyncio
 from collections import defaultdict
+from functools import partial
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.analytics import enqueue_analytics
 from app.core.app_logger import get_logger
-from app.core.database import get_db
+from app.core.database import get_db, get_session_factory
 from app.core.deps import get_active_study_plan, get_current_user
 from app.core.limiter import limiter
 from app.data.curriculum import COMPLETION_UNIT_IDS, get_curriculum_units
@@ -26,6 +28,7 @@ from app.schemas.study_plan import (
 )
 from app.services.completion_service import get_completion_state
 from app.services.learning_analytics import LearningEvent, record_learning_event
+from app.services import generation_jobs
 from app.services.lesson_generator import generate_lesson
 from app.services.study_plan_generator import (
     PlanCapacityError,
@@ -145,12 +148,47 @@ async def create_study_plan(
     return plan
 
 
+async def _generate_today_lesson(
+    session_factory: async_sessionmaker,
+    *,
+    generate_args: dict,
+    lesson_fields: dict,
+) -> None:
+    """Generate a plan lesson and store it with its exercises."""
+    content = await generate_lesson(**generate_args)
+    content_dict = content.model_dump() if hasattr(content, "model_dump") else content
+    exercises_data = content_dict.get("exercises") or []
+    if not exercises_data:
+        raise ValueError("Lesson generated with no exercises")
+    async with session_factory() as db:
+        lesson = Lesson(**lesson_fields, content=content_dict)
+        db.add(lesson)
+        try:
+            await db.flush()
+            for ex in exercises_data:
+                db.add(
+                    Exercise(
+                        lesson_id=lesson.id,
+                        exercise_type=ex.get("type", "multiple_choice"),
+                        question=ex.get("question", ""),
+                        options=ex.get("options"),
+                        correct_answer=ex.get("correct", ""),
+                        explanation=ex.get("explanation"),
+                    )
+                )
+            await db.commit()
+        except IntegrityError:
+            # Another worker stored the same lesson first.
+            await db.rollback()
+
+
 @router.get("/today", response_model=TodayResponse)
 @limiter.limit("20/minute")
 async def get_today_lessons(
     request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    session_factory: async_sessionmaker = Depends(get_session_factory),
 ):
     active_lang = await get_active_language(db, current_user.id)
     if not active_lang:
@@ -218,6 +256,18 @@ async def get_today_lessons(
 
     current_week = (plan.progress_day // plan.days_per_week) + 1
     current_day = (plan.progress_day % plan.days_per_week) + 1
+    # Cache plan fields: a failed or duplicate lesson insert rolls back the
+    # session, which expires ORM objects and makes later attribute access fail.
+    plan_id = plan.id
+    plan_cefr_level = plan.cefr_level
+    plan_target_language = plan.target_language
+    plan_progress_day = plan.progress_day
+    native_language = current_user.native_language
+    # Wait briefly for new lessons; slower generations finish in the background
+    # and the client asks again while `generating` is true.
+    loop = asyncio.get_running_loop()
+    wait_deadline = loop.time() + generation_jobs.WAIT_SECONDS
+    generating = False
 
     weekly_plan = (
         plan.generated_plan.get("weekly_plan")
@@ -240,7 +290,7 @@ async def get_today_lessons(
     if not week:
         return TodayResponse(
             plan_id=plan.id,
-            cefr_level=plan.cefr_level,
+            cefr_level=plan_cefr_level,
             lessons=[],
             progress_day=plan.progress_day,
             total_days=total_days,
@@ -282,7 +332,7 @@ async def get_today_lessons(
         grammar_points: list[str] = []
         vocabulary_set_ids: list[str] = []
         if d_unit_id:
-            for cu in get_curriculum_units(plan.cefr_level, plan.target_language):
+            for cu in get_curriculum_units(plan_cefr_level, plan_target_language):
                 if cu.id == d_unit_id:
                     grammar_points = cu.grammar_points
                     vocabulary_set_ids = cu.vocabulary_set_ids
@@ -290,7 +340,6 @@ async def get_today_lessons(
 
         # Auto-generate the lesson if it doesn't exist yet. The reserved final
         # slot is the real assessment: it never generates a substitute lesson.
-        plan_id = plan.id  # cache before any rollback that would expire the ORM object
         if lesson_id is None and d_unit_id not in COMPLETION_UNIT_IDS:
             previous_lessons = [
                 {
@@ -301,59 +350,46 @@ async def get_today_lessons(
                 for sibling in lessons_by_unit.get(d_unit_id, [])
                 if sibling.title != d_title
             ]
-            try:
-                content = await generate_lesson(
-                    cefr_level=plan.cefr_level,
-                    lesson_type=d_type,
-                    topic=d_title,
-                    week=current_week,
-                    day=current_day,
-                    unit_id=d_unit_id,
-                    grammar_points=grammar_points,
-                    vocabulary_set_ids=vocabulary_set_ids,
-                    target_language=plan.target_language,
-                    native_language=current_user.native_language,
-                    previous_lessons=previous_lessons,
-                )
-                content_dict = content.model_dump() if hasattr(content, "model_dump") else content
-
-                lesson = Lesson(
-                    study_plan_id=plan.id,
-                    title=d_title,
-                    lesson_type=d_type,
-                    cefr_level=plan.cefr_level,
-                    week_number=current_week,
-                    day_number=current_day,
-                    unit_id=d_unit_id,
-                    content=content_dict,
-                )
-                db.add(lesson)
-                await db.flush()
-
-                exercises_data = content_dict.get("exercises") or []
-                for ex in exercises_data:
-                    exercise = Exercise(
-                        lesson_id=lesson.id,
-                        exercise_type=ex.get("type", "multiple_choice"),
-                        question=ex.get("question", ""),
-                        options=ex.get("options"),
-                        correct_answer=ex.get("correct", ""),
-                        explanation=ex.get("explanation"),
+            job = generation_jobs.start(
+                ("today-lesson", plan_id, current_week, current_day, d_title),
+                partial(
+                    _generate_today_lesson,
+                    session_factory,
+                    generate_args={
+                        "cefr_level": plan_cefr_level,
+                        "lesson_type": d_type,
+                        "topic": d_title,
+                        "week": current_week,
+                        "day": current_day,
+                        "unit_id": d_unit_id,
+                        "grammar_points": grammar_points,
+                        "vocabulary_set_ids": vocabulary_set_ids,
+                        "target_language": plan_target_language,
+                        "native_language": native_language,
+                        "previous_lessons": previous_lessons,
+                    },
+                    lesson_fields={
+                        "study_plan_id": plan_id,
+                        "title": d_title,
+                        "lesson_type": d_type,
+                        "cefr_level": plan_cefr_level,
+                        "week_number": current_week,
+                        "day_number": current_day,
+                        "unit_id": d_unit_id,
+                    },
+                ),
+            )
+            remaining = max(0.0, wait_deadline - loop.time())
+            if not await generation_jobs.wait(job, remaining):
+                generating = True
+            else:
+                if not job.cancelled() and job.exception() is not None:
+                    logger.error(
+                        "Failed to generate or persist lesson for plan %s",
+                        plan_id,
+                        exc_info=job.exception(),
                     )
-                    db.add(exercise)
-
-                if not exercises_data:
-                    await db.rollback()
-                    raise ValueError("Lesson generated with no exercises")
-
-                await db.commit()
-                await db.refresh(lesson)
-                lesson_id = lesson.id
-                if d_unit_id:
-                    lessons_by_unit[d_unit_id].append(lesson)
-            except IntegrityError:
-                await db.rollback()
-                dup = await db.execute(
+                stored = await db.scalar(
                     select(Lesson).where(
                         Lesson.study_plan_id == plan_id,
                         Lesson.week_number == current_week,
@@ -361,12 +397,11 @@ async def get_today_lessons(
                         Lesson.title == d_title,
                     )
                 )
-                existing = dup.scalar_one_or_none()
-                if existing:
-                    lesson_id = existing.id
-                    lesson_completed = existing.is_completed
-            except Exception:
-                logger.exception("Failed to generate or persist lesson for plan %s", plan_id)
+                if stored is not None:
+                    lesson_id = stored.id
+                    lesson_completed = stored.is_completed
+                    if d_unit_id:
+                        lessons_by_unit[d_unit_id].append(stored)
 
         # A legacy synthetic lesson for the final slot stays reachable while the
         # assessment is pending; once a result exists, the slot is only the result.
@@ -389,13 +424,14 @@ async def get_today_lessons(
             )
 
     return TodayResponse(
-        plan_id=plan.id,
-        cefr_level=plan.cefr_level,
+        plan_id=plan_id,
+        cefr_level=plan_cefr_level,
         lessons=today_lessons,
-        progress_day=plan.progress_day,
+        progress_day=plan_progress_day,
         total_days=total_days,
         pending_count=pending_count,
         completion=completion,
+        generating=generating,
     )
 
 

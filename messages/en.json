@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# day of free trial} other {# days of free trial}}",
     "freemiumTrialDesc": "Enjoy unlimited access to chat, voice, listening and reading. Try everything Premium for free.",
     "announcementDismiss": "Dismiss announcement",
-    "announcementDismissError": "Could not dismiss the announcement. Try again."
+    "announcementDismissError": "Could not dismiss the announcement. Try again.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Assessment",

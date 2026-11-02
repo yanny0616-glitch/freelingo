@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {免费试用剩余 # 天} other {免费试用剩余 # 天}}",
     "freemiumTrialDesc": "畅享聊天、语音、听力和阅读，免费体验高级版全部功能。",
     "announcementDismiss": "关闭公告",
-    "announcementDismissError": "无法关闭公告，请重试。"
+    "announcementDismissError": "无法关闭公告，请重试。",
+    "generatingToday": "正在生成今天的课程，通常需要一两分钟，页面会自动更新。"
   },
   "assessment": {
     "title": "水平测评",
@@ -826,9 +827,9 @@
     "lessonDone": "做得不错，课程已完成。",
     "exerciseSummary": "已评估练习：{completed}/{total}",
     "score": "得分",
-    "showNativeExplanation": "显示语言",
+    "showNativeExplanation": "显示为",
     "hint": "提示",
-    "showNativeHint": "提示语言",
+    "showNativeHint": "提示显示为",
     "regenerateExercise": "修复这道题",
     "regeneratingExercise": "正在重新生成…",
     "regenerateError": "无法重新生成练习，请重试。",

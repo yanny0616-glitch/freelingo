@@ -199,10 +199,15 @@ export default function LessonPage() {
     setRegeneratingLesson(true)
     setRegenerateLessonError(false)
     try {
-      const res = await apiFetch(`/api/lessons/${id}/regenerate`, {
+      let res = await apiFetch(`/api/lessons/${id}/regenerate`, {
         method: 'POST',
       })
-      if (!res.ok) throw new Error('regenerate failed')
+      // 202: still generating on the server; each check waits up to ~20 s.
+      for (let checks = 0; res.status === 202 && checks < 40; checks++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        res = await apiFetch(`/api/lessons/${id}/regenerate`)
+      }
+      if (res.status !== 200) throw new Error('regenerate failed')
       dismissTooltip()
       setCurrentExercise(0)
       setAnswer('')

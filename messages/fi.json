@@ -611,7 +611,8 @@
     "freemiumTrialTitle": "{days, plural, one {# päivä ilmaista kokeilua} other {# päivää ilmaista kokeilua}}",
     "freemiumTrialDesc": "Käytä rajattomasti chat-, ääni-, kuuntelu- ja lukutoimintoja. Kokeile kaikkia Premium-ominaisuuksia ilmaiseksi.",
     "announcementDismiss": "Sulje ilmoitus",
-    "announcementDismissError": "Ilmoitusta ei voitu sulkea. Yritä uudelleen."
+    "announcementDismissError": "Ilmoitusta ei voitu sulkea. Yritä uudelleen.",
+    "generatingToday": "Preparing today's lesson. This usually takes a minute or two and the page updates automatically."
   },
   "assessment": {
     "title": "Tasoarvio",

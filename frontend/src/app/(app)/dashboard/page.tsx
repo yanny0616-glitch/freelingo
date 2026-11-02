@@ -43,6 +43,11 @@ interface CompletionState {
   next_level: string | null
 }
 
+// The server answers within about 20 s per lesson and reports `generating`
+// while slower generations continue in the background.
+const TODAY_TIMEOUT_MS = 90_000
+const TODAY_POLL_MS = 5_000
+
 export default function DashboardPage() {
   const t = useTranslations('dashboard')
   const tAssessment = useTranslations('assessment')
@@ -89,6 +94,9 @@ export default function DashboardPage() {
   const [progressDay, setProgressDay] = useState(0)
   const [totalDays, setTotalDays] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
+  const [todayGenerating, setTodayGenerating] = useState(false)
+  // Bumped after each answer while lessons are generating to schedule a check.
+  const [todayPoll, setTodayPoll] = useState(0)
   const [totalLessons, setTotalLessons] = useState(0)
   const [totalExercises, setTotalExercises] = useState(0)
   const [exercisesCorrect, setExercisesCorrect] = useState(0)
@@ -107,15 +115,17 @@ export default function DashboardPage() {
   const [portalLoading, setPortalLoading] = useState(false)
   const [portalError, setPortalError] = useState<string | null>(null)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (quiet = false) => {
     const sequence = ++loadSequence.current
     activeLoad.current?.abort()
     const controller = new AbortController()
     activeLoad.current = controller
     const { signal } = controller
-    const timer = setTimeout(() => controller.abort(), 30000)
-    setPlanLoading(true)
-    setPlanLoadError(false)
+    let timer = setTimeout(() => controller.abort(), 30000)
+    if (!quiet) {
+      setPlanLoading(true)
+      setPlanLoadError(false)
+    }
     // Lesson generation must not hold the read-only dashboard behind a loader.
     const todayRequest = apiFetch('/api/study-plan/today', { signal })
       .then(async (res) => ({ ok: res.ok, data: res.ok ? await res.json() : null }))
@@ -172,6 +182,9 @@ export default function DashboardPage() {
         throw new Error('Failed to load study plan')
       }
       setLoading(false)
+      // Generating today's lesson can take a few minutes with large models.
+      clearTimeout(timer)
+      timer = setTimeout(() => controller.abort(), TODAY_TIMEOUT_MS)
       const today = await todayRequest
       if (sequence !== loadSequence.current) return
       const plan = today?.data
@@ -195,9 +208,18 @@ export default function DashboardPage() {
           }))
         )
         setHasPlan(true)
-        if (plan.lessons.length === 0 && plan.completion?.state === 'in_progress') {
+        setTodayGenerating(plan.generating === true)
+        if (plan.generating === true) setTodayPoll((n) => n + 1)
+        if (
+          plan.lessons.length === 0 &&
+          plan.completion?.state === 'in_progress' &&
+          plan.generating !== true
+        ) {
           setPlanLoadError(true)
         }
+      } else if (quiet) {
+        // A failed background check keeps the current view and tries again.
+        setTodayPoll((n) => n + 1)
       } else if (current) {
         setTodayLessons([])
         setPlanLoadError(true)
@@ -212,7 +234,9 @@ export default function DashboardPage() {
         setHasPlan(false)
       }
     } catch {
-      if (sequence === loadSequence.current) setLoadError(true)
+      if (sequence !== loadSequence.current) return
+      if (quiet) setTodayPoll((n) => n + 1)
+      else setLoadError(true)
     } finally {
       clearTimeout(timer)
       if (sequence === loadSequence.current) {
@@ -245,6 +269,7 @@ export default function DashboardPage() {
     setLoadError(false)
     setCompletion(null)
     setPendingCount(0)
+    setTodayGenerating(false)
     setTodayLessons([])
     loadData()
     return () => {
@@ -252,6 +277,14 @@ export default function DashboardPage() {
       activeLoad.current?.abort()
     }
   }, [loadData, activeLanguage?.code])
+
+  // Check quietly for lessons still being generated, without the full loader.
+  useEffect(() => {
+    if (!todayGenerating) return
+    const timer = setTimeout(() => loadData(true), TODAY_POLL_MS)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one check per answer
+  }, [todayPoll])
 
   async function skipDay() {
     if (skipping) return
@@ -413,6 +446,13 @@ export default function DashboardPage() {
           </div>
           {planLoading ? (
             <PageLoading label={t('loadingProgress')} fullScreen={false} />
+          ) : todayGenerating && todayLessons.length === 0 ? (
+            <p
+              className="text-fl-muted-2 animate-pulse font-mono text-xs"
+              role="status"
+            >
+              {t('generatingToday')}
+            </p>
           ) : planLoadError ? (
             <div className="space-y-3" role="status">
               <p className="text-fl-muted-2 text-sm">{tError('body')}</p>
@@ -648,6 +688,13 @@ export default function DashboardPage() {
 
             {planLoading ? (
               <PageLoading label={t('loadingProgress')} fullScreen={false} />
+            ) : todayGenerating && todayLessons.length === 0 ? (
+              <p
+                className="text-fl-muted-2 animate-pulse font-mono text-xs"
+                role="status"
+              >
+                {t('generatingToday')}
+              </p>
             ) : planLoadError ? (
               <p className="text-fl-muted-2 text-sm" role="status">
                 {tError('body')}
